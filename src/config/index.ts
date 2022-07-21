@@ -29,3 +29,8 @@ export const MONNIFY_API_KEY = process.env.MONNIFY_API_KEY
 export const MONNIFY_SECRET_KEY = process.env.MONNIFY_SECRET_KEY
 export const MONNIFY_CONTRACT_CODE = process.env.MONNIFY_CONTRACT_CODE
 export const MONNIFY_ACCOUNT_NUMBER = process.env.MONNIFY_ACCOUNT_NUMBER
+
+// flutterwave details
+export const FLUTTERWAVE_URL = process.env.FLUTTERWAVE_URL;
+export const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET;
+export const FLUTTERWAVE_PUBLIC_KEY = process.env.FLUTTERWAVE_PUBLIC;

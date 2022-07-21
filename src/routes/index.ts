@@ -7,7 +7,7 @@ router.get('/welcome', function(req: any, res: any, next: any) {
   res.status(200).json({
     message: 'Welcome to the bills payment',
     service: 'Bills Payment',
-    code: 200
+    statusCode: 200,
   });
 });
 
