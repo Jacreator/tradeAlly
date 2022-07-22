@@ -1,10 +1,8 @@
 import { Schema, Document, model } from 'mongoose'
 import crypto from 'crypto'
-import jwt from 'jsonwebtoken'
 import uniqueValidator from 'mongoose-unique-validator'
 import privateValidator from 'mongoose-private'
 import { customAlphabet } from 'nanoid'
-import { Request } from 'express'
 import { JWT_SECRET, JWT_EXPIRE, FRONT_END_URL } from '../config'
 import { sendEmail } from '../helper/mailer'
 import { seal } from '../middleware/authentication'
@@ -145,8 +143,8 @@ const schema = new Schema<IUserModel>(
 )
 
 // Plugins
-schema.plugin(uniqueValidator)
-schema.plugin(privateValidator)
+schema.plugin(uniqueValidator);
+schema.plugin(privateValidator);
 
 schema.virtual('name').get(function (this: IUserModel) {
   return `${this.first_name}` || `${this.entity_name}`;
