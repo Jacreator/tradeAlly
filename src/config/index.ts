@@ -34,3 +34,5 @@ export const MONNIFY_ACCOUNT_NUMBER = process.env.MONNIFY_ACCOUNT_NUMBER
 export const FLUTTERWAVE_URL = process.env.FLUTTERWAVE_URL;
 export const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET;
 export const FLUTTERWAVE_PUBLIC_KEY = process.env.FLUTTERWAVE_PUBLIC;
+
+export const TAXTECH_WALLET = process.env.TAXTECH_WALLET

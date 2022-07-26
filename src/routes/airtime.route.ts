@@ -7,11 +7,17 @@ import { authenticated } from "@/middleware/authentication";
 const router = express.Router();
 
 const {
-  initiateAirtime
+  initiateAirtime,
+  verifyTransaction,
+  getBeneficiaries,
 } = new AirtimeController;
 
 router.use(authenticated);
 
+router.get('/bills-category', getBeneficiaries);
+
 router.post('/initiate', initiateAirtime);
+
+router.post('/verify-trans', verifyTransaction);
 
 export default router;
