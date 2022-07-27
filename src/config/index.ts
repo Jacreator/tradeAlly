@@ -35,4 +35,5 @@ export const FLUTTERWAVE_URL = process.env.FLUTTERWAVE_URL;
 export const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET;
 export const FLUTTERWAVE_PUBLIC_KEY = process.env.FLUTTERWAVE_PUBLIC;
 
-export const TAXTECH_WALLET = process.env.TAXTECH_WALLET
+export const TAXTECH_WALLET = process.env.TAXTECH_WALLET;
+export const AIRTIME_LIMIT = process.env.AIRTIME_LIMIT || 10000;

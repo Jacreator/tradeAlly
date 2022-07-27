@@ -3,6 +3,8 @@ import { AirtimeServices } from '@/services/AirtimeServices';
 import httpStatus from 'http-status';
 import { Transaction } from '@/models/transaction.model';
 import { FlutterWaveService } from './../helper/third-party/flutter-wave';
+import { AIRTIME_LIMIT } from '@/config';
+import { generateRandomString } from './../helper/index';
 
 export class AirtimeController {
   private airtimeService: AirtimeServices;
@@ -16,7 +18,7 @@ export class AirtimeController {
   initiateAirtime = async (req: any, res: any, next: any) => {
     try {
       const { user } = req;
-      const { amount, phoneNumber, save, itemCode, code } = req.body;
+      const { amount, phoneNumber, save, itemCode, code, billerName } = req.body;
       let beneficiaries = null;
       if (save) {
         beneficiaries = await this.airtimeService.saveBeneficiary({
@@ -40,7 +42,6 @@ export class AirtimeController {
       const wallet = await this.airtimeService.debitAndLockFund(user, amount);
 
       // save transaction
-      console.log(verifyNumber.customer);
       const transaction = await this.airtimeService.saveToTransaction({
         wallet_id: wallet._id,
         settlement_amount: amount,
@@ -171,4 +172,89 @@ export class AirtimeController {
       next(error);
     }
   };
+
+  // amount more that 10k
+  airtimeLessThan10k = async (req: any, res: any, next: any) => {
+    try {
+      const { user } = req;
+      const { amount, phoneNumber, save, itemCode, code, billerName } = req.body;
+      let beneficiaries = null;
+      if (save) {
+        beneficiaries = await this.airtimeService.saveBeneficiary({
+          user_id: user._id,
+          phoneNumber,
+          network: itemCode,
+          name: req.body.name,
+        });
+      }
+      // verify number and biller with flutter wave
+      const verifyNumber = await this.flutterWaveService.verifyNumber({
+        customer: phoneNumber,
+        code,
+        item_code: itemCode,
+      });
+
+      if (!verifyNumber) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid Phone number');
+      }
+      if (amount < AIRTIME_LIMIT) {
+        const transaction = new Transaction();
+
+        // remove funds from wallet and lock funds
+        const wallet = await this.airtimeService.debitAndLockFund(user, amount);
+
+        // make payment to flutter wave
+        const ref = generateRandomString(10);
+        const data = {
+          country: 'NG',
+          customer: verifyNumber.customer,
+          amount,
+          recurrence: 'ONCE',
+          type: 'AIRTIME',
+          reference: ref,
+          biller_name: billerName
+        };
+
+        const payment = await this.flutterWaveService.makePayment(data)
+
+        // on fail reserve 
+        if ( payment == null) {
+          wallet.available_balance = wallet.available_balance + amount;
+          wallet.locked_fund = wallet.locked_fund - amount;
+          
+          throw new ApiError(httpStatus.BAD_REQUEST, "Error from third party");
+        }
+        // on success add funds to company wallet
+        if (payment.status == 'success') {
+          const companyWallet = this.airtimeService.sendFundToCompanyWallet({
+            user_id: user._Id,
+            amount_paid: amount,
+            tran_ref: ref
+          });
+          transaction.wallet_id = wallet.wallet_id;
+          transaction.settlement_amount = amount;
+          transaction.description = 'airtime';
+          transaction.currency = 'NGN';
+          transaction.payment_type = 'airtime';
+          transaction.payment_method = 'wallet';
+          transaction.status = 'completed';
+          transaction.phone_number = verifyNumber.customer;
+          transaction.two_fa_code_verify = true;
+          await transaction.save()
+        }
+        // send debit mail to user
+        await transaction.debitEmail({ user });
+        // return res
+        res.status(httpStatus.OK).json({
+          statusCode: httpStatus.OK,
+          message: "Airtime successful",
+          data: transaction
+        });
+      } else {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Please Use 2FA for this kind of amount");
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
 }

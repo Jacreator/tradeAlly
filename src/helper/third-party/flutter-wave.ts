@@ -67,7 +67,7 @@ export class FlutterWaveService {
       };
     }
 
-    return [];
+    return null;
   };
 
   getBalance = async (payload: any) => {
