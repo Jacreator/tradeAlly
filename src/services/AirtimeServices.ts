@@ -75,43 +75,48 @@ export class AirtimeServices {
 
   // send lock funds to taxaide wallet
   sendFundToCompanyWallet = async (payload: any) => {
-    const taxTechWallet = await Wallet.findOne({ wallet_id: TAXTECH_WALLET });
+    try {
+      const taxTechWallet = await Wallet.findOne({ wallet_id: TAXTECH_WALLET });
 
-    const userWallet = await Wallet.findOne({
-      user_id: payload.user_id,
-    });
-    // remove founds from locked funds
-    userWallet.locked_fund =
-      Number(userWallet.locked_fund) -
-      Number(taxTechWallet.currencyUnit(payload.amount_paid));
+      const userWallet = await Wallet.findOne({
+        user_id: payload.user._id,
+      });
+      // remove founds from locked funds
+      userWallet.locked_fund =
+        Number(userWallet.locked_fund) -
+        Number(taxTechWallet.currencyUnit(payload.amount_paid));
 
-    // add fund to company wallet
-    taxTechWallet.available_balance =
-      Number(taxTechWallet.available_balance) +
-      Number(taxTechWallet.currencyUnit(payload.amount_paid));
+      // add fund to company wallet
+      taxTechWallet.available_balance =
+        Number(taxTechWallet.available_balance) +
+        Number(taxTechWallet.currencyUnit(payload.amount_paid));
 
-    // generate transaction record for company
-    const companyTransaction = new Transaction();
-    companyTransaction.wallet_id = TAXTECH_WALLET;
-    companyTransaction.amount_paid = payload.amount_paid;
-    companyTransaction.status = 'paid';
-    companyTransaction.description = `Transaction fee for ${payload.tran_ref}`;
-    companyTransaction.reciever = TAXTECH_WALLET;
-    companyTransaction.currency = 'NGN';
-    companyTransaction.payment_method = 'wallet';
-    companyTransaction.payment_type = 'credit';
+      // generate transaction record for company
+      const companyTransaction = new Transaction();
+      companyTransaction.wallet_id = TAXTECH_WALLET;
+      companyTransaction.amount_paid = payload.amount_paid;
+      companyTransaction.status = 'paid';
+      companyTransaction.description = `Transaction fee for ${payload.tran_ref}`;
+      companyTransaction.reciever = TAXTECH_WALLET;
+      companyTransaction.currency = 'NGN';
+      companyTransaction.payment_method = 'wallet';
+      companyTransaction.payment_type = 'credit';
 
-    // send credit email to company
-    // await companyTransaction.creditEmail({
-    //   user: payload.user_id,
-    //   amount: payload.amount_paid,
-    // });
+      // send credit email to company
+      await companyTransaction.creditEmail({
+        user: payload.user_id,
+        amount: payload.amount_paid,
+      });
 
-    // save transaction
-    await companyTransaction.save();
-    const wallet = await userWallet.save();
-    await taxTechWallet.save();
+      // save transaction
+      await companyTransaction.save();
+      const wallet = await userWallet.save();
+      await taxTechWallet.save();
 
-    return wallet;
+      return wallet;
+    } catch (error) {
+      throw new ApiError(httpStatus.BAD_REQUEST, error.message);
+    }
+    
   };
 }

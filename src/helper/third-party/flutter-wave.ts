@@ -56,18 +56,26 @@ export class FlutterWaveService {
   /**
    * make airtime payment
    */
-  makePayment = async (payload: any): Promise<any> => {
-    const response = await this.axiosInstance.post('/bills', payload);
+  makePayment = async (payload: any) => {
+    // const response = await this.axiosInstance.post('/bills', payload);
+
+    const response = await this.flw.Bills.create_bill(payload);
 
     console.log(response);
     if (response.status == httpStatus.OK || response.status == 'pending') {
       return {
         data: response.data,
         status: response.status,
+        code: httpStatus.OK,
       };
     }
 
-    return null;
+    return {
+      data: response,
+      status: response.status,
+      message: response.message,
+      code: httpStatus.BAD_REQUEST,
+    };
   };
 
   getBalance = async (payload: any) => {

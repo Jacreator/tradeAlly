@@ -10,7 +10,8 @@ const {
   initiateAirtime,
   verifyTransaction,
   getBeneficiaries,
-  airtimeLessThan10k
+  airtimeLessThan10k,
+  dataPayment
 } = new AirtimeController;
 
 router.use(authenticated);
@@ -22,5 +23,7 @@ router.post('/initiate', initiateAirtime);
 router.post('/verify-trans', verifyTransaction);
 
 router.post('/one-way', airtimeLessThan10k);
+
+router.post('/data-payment', dataPayment);
 
 export default router;
