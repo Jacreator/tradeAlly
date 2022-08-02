@@ -42,6 +42,17 @@ export class FlutterWaveService {
   };
 
   /**
+   * All bills category
+   */
+  getAllBillsCategory = async () => {
+    const response = await this.axiosInstance.get(`/bill-categories`);
+    if (response.status === httpStatus.OK) {
+      return response.data;
+    }
+    return false;
+  }
+
+  /**
    * Verify airtime transaction
    */
   verifyNumber = async (payload: any) => {

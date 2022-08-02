@@ -11,12 +11,15 @@ const {
   verifyTransaction,
   getBeneficiaries,
   airtimeLessThan10k,
-  dataPayment
+  billPayment,
+  getBillsCategories
 } = new AirtimeController;
 
 router.use(authenticated);
 
 router.get('/bills-category', getBeneficiaries);
+
+router.get('/bills/categories', getBillsCategories);
 
 router.post('/initiate', initiateAirtime);
 
@@ -24,6 +27,6 @@ router.post('/verify-trans', verifyTransaction);
 
 router.post('/one-way', airtimeLessThan10k);
 
-router.post('/data-payment', dataPayment);
+router.post('/bill-payment', billPayment);
 
 export default router;

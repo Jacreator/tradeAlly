@@ -5,6 +5,7 @@ import { Transaction } from '@/models/transaction.model';
 import { FlutterWaveService } from './../helper/third-party/flutter-wave';
 import { AIRTIME_LIMIT } from '@/config';
 import { generateRandomString } from './../helper/index';
+import { Wallet } from '@/models/wallet.model';
 
 export class AirtimeController {
   private airtimeService: AirtimeServices;
@@ -37,7 +38,7 @@ export class AirtimeController {
       });
       // console.log(verifyNumber);
       if (!verifyNumber) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid Phone number');
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid number Provided');
       }
       // check and debit the user's wallet and lock funds
       const wallet = await this.airtimeService.debitAndLockFund(user, amount);
@@ -48,7 +49,7 @@ export class AirtimeController {
         settlement_amount: amount,
         description: 'Airtime',
         currency: 'NGN',
-        payment_type: 'airtime',
+        payment_type: billerName,
         payment_method: 'wallet',
         status: 'pending',
         phone_number: verifyNumber.customer,
@@ -56,6 +57,7 @@ export class AirtimeController {
 
       // send airtime OTP
       if (transaction) {
+        await transaction.debitEmail({ user, amount});
         await transaction.sendTWOFACode({ user });
       }
 
@@ -95,12 +97,11 @@ export class AirtimeController {
         // make call to fluter wave to verify transaction
         const data = {
           country: 'NG',
+          recurrence: 'ONCE',
           customer: transaction.phone_number,
           amount: transaction.settlement_amount,
-          recurrence: 'ONCE',
-          type: 'AIRTIME',
-          reference: transaction.trans_ref,
-          biller_name: 'MTN VTU',
+          type: transaction.payment_type,
+          reference: transaction.trans_ref
         };
 
         const payment = await this.flutterWaveService.makePayment(data);
@@ -135,7 +136,12 @@ export class AirtimeController {
           });
         } else {
           // reverse funds and send a reverse mail
-          transaction.reversalEmail({ user });
+          const wallet = await Wallet.findOne({
+            user_id: user._id });
+          wallet.available_balance = wallet.available_balance + transaction.settlement_amount;
+          wallet.locked_fund = wallet.locked_fund - Number(transaction.settlement_amount);
+          wallet.save();
+          transaction.reversalEmail({ user, amount: transaction.settlement_amount });
           res.status(httpStatus.UNPROCESSABLE_ENTITY).json({
             code: httpStatus.UNPROCESSABLE_ENTITY,
             message: 'Transaction failed',
@@ -172,6 +178,32 @@ export class AirtimeController {
       next(error);
     }
   };
+
+  /**
+   * Get all bills Categories
+   * 
+   * @route GET /api/v1/airtime/bills/categories
+   * @param {any} req
+   * @param {any} res
+   * @param { any } next
+   * @group Airtime
+   * @returns {object} 200 - An array of bills categories
+   * @memberOf AirtimeController
+   */
+  getBillsCategories = async (req: any, res: any, next: any) => {
+    try {
+      const categories = await this.flutterWaveService.getAllBillsCategory();
+      res.status(httpStatus.OK).json({
+        code: httpStatus.OK,
+        message: 'Bills categories retrieved successfully',
+        data: {
+          categories,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 
   // amount more that 10k
   airtimeLessThan10k = async (req: any, res: any, next: any) => {
@@ -264,8 +296,8 @@ export class AirtimeController {
     }
   };
 
-  // payment for Data
-  dataPayment = async (req: any, res: any, next: any) => {
+  // payment for for all bills
+  billPayment = async (req: any, res: any, next: any) => {
     try {
       const { user } = req;
       const { amount, phoneNumber, billerName, billerCode, itemCode } =
@@ -336,4 +368,6 @@ export class AirtimeController {
       next(error);
     }
   };
+
+  
 }
