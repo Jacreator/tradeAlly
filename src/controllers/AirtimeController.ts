@@ -19,20 +19,20 @@ export class AirtimeController {
   initiateAirtime = async (req: any, res: any, next: any) => {
     try {
       const { user } = req;
-      const { amount, phoneNumber, save, itemCode, code, billerName } =
+      const { amount, customerID, save, itemCode, code, billerName } =
         req.body;
       let beneficiaries = null;
       if (save) {
         beneficiaries = await this.airtimeService.saveBeneficiary({
           user_id: user._id,
-          phoneNumber,
+          phoneNumber: customerID,
           network: itemCode,
           name: req.body.name,
         });
       }
       // verify number and biller with flutter wave
       const verifyNumber = await this.flutterWaveService.verifyNumber({
-        customer: phoneNumber,
+        customer: customerID,
         code,
         item_code: itemCode,
       });
@@ -106,7 +106,7 @@ export class AirtimeController {
 
         const payment = await this.flutterWaveService.makePayment(data);
 
-        if (payment.status == 'pending') {
+        if (payment.code == httpStatus.OK && payment.status == 'pending') {
           // update transaction status to retry
           transaction.status = 'retry';
           transaction.pay_ref = payment.data.tx_ref;
@@ -119,8 +119,9 @@ export class AirtimeController {
             data: payment.data,
           });
         }
+        
         // update transaction status
-        if (payment.status == 'success') {
+        if (payment.code == httpStatus.OK) {
           // debit transaction wallet to taxaide wallet
           const userWallet = await this.airtimeService.sendFundToCompanyWallet({
             amount_paid: transaction.settlement_amount,
@@ -138,10 +139,13 @@ export class AirtimeController {
           // reverse funds and send a reverse mail
           const wallet = await Wallet.findOne({
             user_id: user._id });
+
           wallet.available_balance = wallet.available_balance + transaction.settlement_amount;
           wallet.locked_fund = wallet.locked_fund - Number(transaction.settlement_amount);
+          transaction.status = 'failed';
           wallet.save();
           transaction.reversalEmail({ user, amount: transaction.settlement_amount });
+          transaction.save();
           res.status(httpStatus.UNPROCESSABLE_ENTITY).json({
             code: httpStatus.UNPROCESSABLE_ENTITY,
             message: 'Transaction failed',
@@ -300,17 +304,17 @@ export class AirtimeController {
   billPayment = async (req: any, res: any, next: any) => {
     try {
       const { user } = req;
-      const { amount, phoneNumber, billerName, billerCode, itemCode } =
+      const { amount, customerID, billerName, billerCode, itemCode } =
         req.body;
       // validate number
       const verifyNumber = await this.flutterWaveService.verifyNumber({
-        customer: phoneNumber,
+        customer: customerID,
         code: billerCode,
         item_code: itemCode,
       });
 
       if (!verifyNumber) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid Phone number');
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid number Provided');
       }
 
       // debit and lock funds

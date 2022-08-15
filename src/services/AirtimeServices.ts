@@ -33,16 +33,19 @@ export class AirtimeServices {
           'Insufficient balance in wallet!',
         );
       }
-      const wallet = await Wallet.findOneAndUpdate(
-        { user_id: user._id },
-        {
-          $inc: {
-            available_balance: -userWallet.currencyUnit(amount.toString()),
-            locked_fund: +userWallet.currencyUnit(amount.toString()),
-          },
-        },
-        { new: true },
-      );
+      const wallet = await Wallet.findOne({ user_id: user._id });
+        // {
+        //   $inc: {
+        //     available_balance: -userWallet.currencyUnit(amount.toString()),
+        //     locked_fund: +userWallet.currencyUnit(amount.toString()),
+        //   },
+        // },
+        // { new: true },
+      // );
+
+      wallet.available_balance = wallet.available_balance - userWallet.currencyUnit(amount.toString());
+      wallet.locked_fund = wallet.locked_fund + userWallet.currencyUnit(amount.toString());
+      await wallet.save();
 
       return wallet;
     } catch (error) {
