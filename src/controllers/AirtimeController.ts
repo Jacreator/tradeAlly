@@ -57,7 +57,7 @@ export class AirtimeController {
 
       // send airtime OTP
       if (transaction) {
-        await transaction.debitEmail({ user, amount});
+        await transaction.debitEmail({ user, amount });
         await transaction.sendTWOFACode({ user });
       }
 
@@ -106,7 +106,7 @@ export class AirtimeController {
 
         const payment = await this.flutterWaveService.makePayment(data);
 
-        if (payment.code == httpStatus.OK && payment.status == 'pending') {
+        if (payment.status == 'pending') {
           // update transaction status to retry
           transaction.status = 'retry';
           transaction.pay_ref = payment.data.tx_ref;
@@ -119,14 +119,14 @@ export class AirtimeController {
             data: payment.data,
           });
         }
-        
+
         // update transaction status
-        if (payment.code == httpStatus.OK) {
+        if (payment.status === 'success') {
           // debit transaction wallet to taxaide wallet
           const userWallet = await this.airtimeService.sendFundToCompanyWallet({
             amount_paid: transaction.settlement_amount,
             tran_ref: transaction.trans_ref,
-            user_id: user._id,
+            user: user,
           });
           // unlock funds
           transaction.status = 'paid';
@@ -138,7 +138,8 @@ export class AirtimeController {
         } else {
           // reverse funds and send a reverse mail
           const wallet = await Wallet.findOne({
-            user_id: user._id });
+            user_id: user._id
+          });
 
           wallet.available_balance = wallet.available_balance + transaction.settlement_amount;
           wallet.locked_fund = wallet.locked_fund - Number(transaction.settlement_amount);
@@ -256,7 +257,7 @@ export class AirtimeController {
         const payment = await this.flutterWaveService.makePayment(data);
 
         // on fail reserve
-        if (payment.code == httpStatus.BAD_REQUEST) {
+        if (payment.status == 'error') {
           // reverse funds and send a reverse mail
           wallet.available_balance = wallet.available_balance + amount;
           wallet.locked_fund = wallet.locked_fund - amount;
@@ -306,6 +307,11 @@ export class AirtimeController {
       const { user } = req;
       const { amount, customerID, billerName, billerCode, itemCode } =
         req.body;
+
+      if (amount < 100) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Amount must be 100 upward');
+      }
+
       // validate number
       const verifyNumber = await this.flutterWaveService.verifyNumber({
         customer: customerID,
@@ -315,6 +321,16 @@ export class AirtimeController {
 
       if (!verifyNumber) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid number Provided');
+      }
+
+      let beneficiaries = null;
+      if (save) {
+        beneficiaries = await this.airtimeService.saveBeneficiary({
+          user_id: user._id,
+          phoneNumber: customerID,
+          network: itemCode,
+          name: req.body.name,
+        });
       }
 
       // debit and lock funds
@@ -346,32 +362,38 @@ export class AirtimeController {
 
       const payment = await this.flutterWaveService.makePayment(data);
 
-      if (payment.code == httpStatus.BAD_REQUEST) {
+      if (payment.status == 'error') {
         // reverse funds and send a reverse mail
         wallet.available_balance = wallet.available_balance + amount;
         wallet.locked_fund = wallet.locked_fund - amount;
         wallet.save();
         transaction.reversalEmail({ user, amount });
-        throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, payment.message);
+        throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'Error from third party reach out to the backend Team');
       }
 
-      // update taxtech wallet
-      // store transaction for taxtech
+      // on success add funds to company wallet
       const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
         user: user,
         amount_paid: amount,
         tran_ref: transaction.trans_ref,
       });
+      
+      if (taxtechWallet) {
+        transaction.status = "PAID";
+        transaction.save();
+      }
+
       // send response
-      res.status().json({
-        code: httpStatus.OK,
+      const savedBeneficiaries = beneficiaries ? 'beneficiary Saved' : null;
+      res.status(httpStatus.OK).json({
         message: 'Data payment successful',
-        data: { payment },
+        aboutBeneficiary: savedBeneficiaries,
+        data: payment,
       });
     } catch (error) {
       next(error);
     }
   };
 
-  
+
 }

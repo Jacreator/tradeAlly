@@ -106,10 +106,10 @@ export class AirtimeServices {
       companyTransaction.payment_type = 'credit';
 
       // send credit email to company
-      await companyTransaction.creditEmail({
-        user: payload.user_id,
-        amount: payload.amount_paid,
-      });
+      // await companyTransaction.creditEmail({
+      //   user: payload.user,
+      //   amount: payload.amount_paid,
+      // });
 
       // save transaction
       await companyTransaction.save();

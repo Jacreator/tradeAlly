@@ -72,20 +72,18 @@ export class FlutterWaveService {
 
     const response = await this.flw.Bills.create_bill(payload);
 
-    console.log(response);
-    if (response.status == httpStatus.OK || response.status == 'pending') {
+      console.log(response);
+    if (response.status == "success" || response.status == "pending") {
       return {
         data: response.data,
         status: response.status,
         code: httpStatus.OK,
       };
     }
-
     return {
-      data: response,
+      data: response.data,
       status: response.status,
-      message: response.message,
-      code: httpStatus.BAD_REQUEST,
+      
     };
   };
 
