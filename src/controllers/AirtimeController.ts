@@ -305,7 +305,7 @@ export class AirtimeController {
   billPayment = async (req: any, res: any, next: any) => {
     try {
       const { user } = req;
-      const { amount, customerID, billerName, billerCode, itemCode } =
+      const { amount, customerID, billerName, billerCode, itemCode, save } =
         req.body;
 
       if (amount < 100) {
@@ -377,7 +377,7 @@ export class AirtimeController {
         amount_paid: amount,
         tran_ref: transaction.trans_ref,
       });
-      
+
       if (taxtechWallet) {
         transaction.status = "PAID";
         transaction.save();
