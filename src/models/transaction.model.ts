@@ -165,7 +165,7 @@ schema.methods.creditEmail = async function (payload: any) {
     <h3>Hello ${name},</h3>
 
     <p>
-      You have successfuly been credited ${amount}
+      You have successfully been credited ${amount}
     </p>
 
     <p>
