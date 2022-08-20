@@ -9,15 +9,16 @@ const router = express.Router();
 const {
   initiateAirtime,
   verifyTransaction,
-  getBeneficiaries,
+  getCategory,
   airtimeLessThan10k,
   billPayment,
-  getBillsCategories
+  getBillsCategories,
+  getWalletBalance
 } = new AirtimeController;
 
 router.use(authenticated);
 
-router.get('/bills-category', getBeneficiaries);
+router.get('/bills-category', getCategory);
 
 router.get('/bills/categories', getBillsCategories);
 
@@ -28,5 +29,7 @@ router.post('/verify-trans', verifyTransaction);
 router.post('/one-way', airtimeLessThan10k);
 
 router.post('/bill-payment', billPayment);
+
+router.get('/flutterwave-balance', getWalletBalance);
 
 export default router;
