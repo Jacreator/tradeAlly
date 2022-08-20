@@ -164,7 +164,7 @@ export class AirtimeController {
     }
   };
 
-  getBeneficiaries = async (req: any, res: any, next: any) => {
+  getCategory = async (req: any, res: any, next: any) => {
     try {
       const { category } = req.query;
       console.log(category);
@@ -305,10 +305,10 @@ export class AirtimeController {
   billPayment = async (req: any, res: any, next: any) => {
     try {
       const { user } = req;
-      const { amount, customerID, billerName, billerCode, itemCode, save } =
+      const { amount, customerID, billerName, billerCode, itemCode, save, name, type } =
         req.body;
 
-      if (amount < 100) {
+      if (amount < 100 && type === 'airtime') {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Amount must be 100 upward');
       }
 
@@ -329,7 +329,7 @@ export class AirtimeController {
           user_id: user._id,
           phoneNumber: customerID,
           network: itemCode,
-          name: req.body.name,
+          name: req.body.name || name,
         });
       }
 
@@ -371,19 +371,25 @@ export class AirtimeController {
         throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'Error from third party reach out to the backend Team');
       }
 
-      // on success add funds to company wallet
-      const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
-        user: user,
-        amount_paid: amount,
-        tran_ref: transaction.trans_ref,
-      });
-
-      if (taxtechWallet) {
-        transaction.status = "PAID";
+      if (payment.status == 'pending') {
+        transaction.status = 'retry';
         transaction.save();
       }
 
-      // send response
+      if (payment.status == 'success') {
+        // on success add funds to company wallet
+        const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
+          user: user,
+          amount_paid: amount,
+          tran_ref: transaction.trans_ref,
+        });
+
+        if (taxtechWallet) {
+          transaction.status = "PAID";
+          transaction.save();
+        }
+      }
+      
       const savedBeneficiaries = beneficiaries ? 'beneficiary Saved' : null;
       res.status(httpStatus.OK).json({
         message: 'Data payment successful',
@@ -395,5 +401,16 @@ export class AirtimeController {
     }
   };
 
-
+  getWalletBalance = async (req: any, res: any, next: any) => {
+    try {
+      console.log('getWalletBalance');
+      const wallet = await this.flutterWaveService.getBalance();
+      res.status(httpStatus.OK).json({
+        message: 'Wallet Balance',
+        data: wallet,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

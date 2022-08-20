@@ -12,6 +12,7 @@ const Flutterwave = require('flutterwave-node-v3');
 export class FlutterWaveService {
   public axiosInstance: any;
   public flw: any;
+
   constructor() {
     this.flw = new Flutterwave(FLUTTERWAVE_PUBLIC_KEY, FLUTTERWAVE_SECRET_KEY);
     this.axiosInstance = axios.create({
@@ -87,9 +88,10 @@ export class FlutterWaveService {
     };
   };
 
-  getBalance = async (payload: any) => {
-    const response = await this.flw.Bills.fetch_balance(payload);
-    if (response.status == httpStatus.OK) {
+  getBalance = async () => {
+    // const response = await this.flw.Misc.bal();
+    const response = await this.axiosInstance.get('/balances');
+    if (response.status == 'success' || response.status == httpStatus.OK) {
       return response.data;
     }
     return false;
