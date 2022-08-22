@@ -1,4 +1,8 @@
-var express = require('express');
+import express from 'express';
+
+// local files
+import airtime from './airtime.route';
+import beneficiaries from './beneficiaries.route';
 
 var router = express.Router();
 
@@ -10,5 +14,8 @@ router.get('/welcome', function(req: any, res: any, next: any) {
     statusCode: 200,
   });
 });
+
+router.use('/airtime', airtime);
+router.use('/beneficiaries', beneficiaries);
 
 export default router;
