@@ -31,9 +31,10 @@ export const authenticated = async (
       const user = await User.findById(token_user.id).select(
         '-__v -password -salt',
       );
-
-      if (!user)
-        throw new ApiError(httpStatus.UNAUTHORIZED, 'unknown data detected!');
+      console.log(user);
+      if (!user) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'unknown user data detected!');
+      }
 
       req.body.padi = user;
       req.user = user;
