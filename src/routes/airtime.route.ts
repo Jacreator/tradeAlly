@@ -13,8 +13,7 @@ const {
   airtimeLessThan10k,
   billPayment,
   getBillsCategories,
-  getWalletBalance,
-  verifyFullerWaveTransaction
+  getWalletBalance
 } = new AirtimeController;
 
 router.use(authenticated);
@@ -33,8 +32,5 @@ router.post('/bill-payment', billPayment);
 
 router.get('/flutterwave-balance', getWalletBalance);
 
-router.get('/balance', getWalletBalance);
-
-router.get('/verify', verifyFullerWaveTransaction);
 
 export default router;
