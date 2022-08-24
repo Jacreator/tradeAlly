@@ -32,4 +32,5 @@ router.post('/bill-payment', billPayment);
 
 router.get('/flutterwave-balance', getWalletBalance);
 
+
 export default router;

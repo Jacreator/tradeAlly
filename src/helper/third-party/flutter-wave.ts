@@ -96,4 +96,23 @@ export class FlutterWaveService {
     }
     return false;
   };
+
+  /**
+   * Verify transaction
+   * @param payload
+   * @returns {Promise<any>}
+   * @memberof FlutterWaveService
+   */
+  verifyTransaction = async (payload: any) => {
+    try {
+        const response = await this.axiosInstance.get(`/bills/${payload.reference}`);
+      return {
+        data: response.data,
+        status: response.status,
+        code: httpStatus.OK,
+      };
+      } catch (error) {
+        console.log(error)
+      }
+  }
 }
