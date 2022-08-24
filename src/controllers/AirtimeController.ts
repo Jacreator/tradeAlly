@@ -359,7 +359,6 @@ export class AirtimeController {
         reference: transaction.trans_ref,
         recurrence: 'ONCE',
       };
-
       const payment = await this.flutterWaveService.makePayment(data);
 
       if (payment.status == 'error') {
@@ -413,4 +412,6 @@ export class AirtimeController {
       next(error);
     }
   }
+
+  
 }

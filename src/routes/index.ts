@@ -3,6 +3,7 @@ import express from 'express';
 // local files
 import airtime from './airtime.route';
 import beneficiaries from './beneficiaries.route';
+import transaction from './transaction.route';
 
 var router = express.Router();
 
@@ -17,5 +18,6 @@ router.get('/welcome', function(req: any, res: any, next: any) {
 
 router.use('/airtime', airtime);
 router.use('/beneficiaries', beneficiaries);
+router.use('/bills/transactions', transaction);
 
 export default router;
