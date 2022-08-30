@@ -65,6 +65,7 @@ export class TransactionController {
                     reference: transaction.trans_ref,
                 });
 
+                // console.log(`verify response`, response);
                 const wallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
                 const user = await User.findOne({ user_id: wallet.user_id });
 

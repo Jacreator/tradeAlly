@@ -346,7 +346,6 @@ export class AirtimeController {
         payment_method: 'wallet',
         phone_number: verifyNumber.customer,
       });
-
       // send debit mail to user
       await transaction.debitEmail({ user, amount });
 
@@ -388,12 +387,13 @@ export class AirtimeController {
           transaction.save();
         }
       }
-      
+
       const savedBeneficiaries = beneficiaries ? 'beneficiary Saved' : null;
       res.status(httpStatus.OK).json({
         message: 'Data payment successful',
         aboutBeneficiary: savedBeneficiaries,
-        data: payment,
+        trans_ref: transaction.trans_ref,
+        data: payment.data,
       });
     } catch (error) {
       next(error);
@@ -402,7 +402,6 @@ export class AirtimeController {
 
   getWalletBalance = async (req: any, res: any, next: any) => {
     try {
-      console.log('getWalletBalance');
       const wallet = await this.flutterWaveService.getBalance();
       res.status(httpStatus.OK).json({
         message: 'Wallet Balance',
@@ -412,6 +411,4 @@ export class AirtimeController {
       next(error);
     }
   }
-
-  
 }
