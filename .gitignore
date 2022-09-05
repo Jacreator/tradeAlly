@@ -7,6 +7,8 @@
 node_modules/
 dist/
 build/
+.yarn/
+.pnp.*
 
 # Compiled Java class files
 *.class
