@@ -9,6 +9,7 @@ dist/
 build/
 .yarn/
 .pnp.*
+.env
 
 # Compiled Java class files
 *.class
@@ -42,6 +43,7 @@ Thumbs.db
 *.app
 *.exe
 *.war
+*.env
 
 # Large media files
 *.mp4
@@ -52,5 +54,3 @@ Thumbs.db
 *.wmv
 
 # Environment Files
-.env
-*.env
