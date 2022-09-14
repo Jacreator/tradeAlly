@@ -9,7 +9,6 @@ dist/
 build/
 .yarn/
 .pnp.*
-.env
 
 # Compiled Java class files
 *.class
@@ -54,3 +53,4 @@ Thumbs.db
 *.wmv
 
 # Environment Files
+.env
