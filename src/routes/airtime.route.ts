@@ -3,6 +3,8 @@ import express from "express";
 // local files
 import { AirtimeController } from "@/controllers/AirtimeController";
 import { authenticated } from "@/middleware/authentication";
+import { UserVerification } from "@/middlewares/userVerified.middleware";
+import { TireCheck } from "@/middlewares/tireCheck.middleware";
 
 const router = express.Router();
 
@@ -16,7 +18,12 @@ const {
   getWalletBalance
 } = new AirtimeController;
 
-router.use(authenticated);
+router.use(
+  authenticated,
+  UserVerification,
+  TireCheck
+  );
+
 
 router.get('/bills-category', getCategory);
 

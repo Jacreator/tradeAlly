@@ -51,6 +51,13 @@ export interface IUser {
   is_locked: boolean
   is_active: boolean
   is_deleted: boolean
+  is_email_verified: boolean
+  is_phone_verified: boolean
+  reason: string
+  otp: number
+  otp_expiry: Date
+  tire: string
+  daily_limit: number
 }
 
 export interface IUserToAuthJSON {
