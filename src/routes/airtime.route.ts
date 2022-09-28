@@ -20,6 +20,7 @@ const {
 
 router.use(
   authenticated,
+  UserVerification,
   );
 
 
@@ -27,13 +28,11 @@ router.get('/bills-category', getCategory);
 
 router.get('/bills/categories', getBillsCategories);
 
-router.post('/initiate', UserVerification,
-  TireCheck, initiateAirtime);
+router.post('/initiate', TireCheck, initiateAirtime);
 
 router.post('/verify-trans', verifyTransaction);
 
-router.post('/bill-payment', UserVerification,
-  TireCheck, billPayment);
+router.post('/bill-payment', TireCheck, billPayment);
 
 router.get('/flutterwave-balance', getWalletBalance);
 
