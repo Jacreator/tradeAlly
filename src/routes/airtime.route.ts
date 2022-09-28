@@ -3,8 +3,8 @@ import express from "express";
 // local files
 import { AirtimeController } from "@/controllers/AirtimeController";
 import { authenticated } from "@/middleware/authentication";
-import { UserVerification } from "@/middlewares/userVerified.middleware";
-import { TireCheck } from "@/middlewares/tireCheck.middleware";
+import { UserVerification } from "@/middleware/userVerified.middleware";
+import { TireCheck } from "@/middleware/tireCheck.middleware";
 
 const router = express.Router();
 
