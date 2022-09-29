@@ -51,6 +51,13 @@ export interface IUser {
   is_locked: boolean
   is_active: boolean
   is_deleted: boolean
+  is_email_verified: boolean
+  is_phone_verified: boolean
+  reason: string
+  otp: number
+  otp_expiry: Date
+  tire: string
+  daily_limit: number
 }
 
 export interface IUserToAuthJSON {
@@ -80,6 +87,13 @@ export interface IUserToAuthJSON {
   company_id: string
   company: string
   is_sub_account: boolean
+  is_email_verified: boolean
+  is_phone_verified: boolean
+  reason: string
+  otp: number
+  otp_expiry: Date
+  tire: string
+  daily_limit: number
 }
 
 export default interface IUserModel extends Document, IUser {
@@ -138,6 +152,13 @@ const schema = new Schema<IUserModel>(
     is_active: { type: Boolean, default: false },
     is_deleted: { type: Boolean, default: false },
     is_deactivated: { type: Boolean, default: false },
+    otp: { type: String, default: null },
+    is_email_verified: { type: Boolean, default: false },
+    is_phone_verified: { type: Boolean, default: false },
+    reason: { type: String, default: null },
+    otp_expiry: { type: Date, default: null },
+    tire: { type: String, default: null },
+    daily_limit: { type: Number, default: null },
   },
   { timestamps: true },
 )
@@ -207,7 +228,9 @@ schema.methods.generateCorporateJWT = async function (): Promise<string> {
 }
 
 schema.methods.toAuthIndividualJSON = async function () {
-  const { _id, account_type, first_name, middle_name, last_name, name, email, phone, is_verified, nationality, occupation, address, city, state, postal_code, country, identification, identification_number, identification_url, proof_of_address, proof_of_address_url, company, company_id, roles, is_sub_account, is_active, is_locked } = this
+  const { _id, account_type, first_name, middle_name, last_name, name, email, phone, is_verified, nationality, occupation, address, city, state, postal_code, country, identification, identification_number, identification_url, proof_of_address, proof_of_address_url, company, company_id, roles, is_sub_account, is_active, is_locked, is_email_verified,
+    is_phone_verified, reason, tire,
+    daily_limit } = this
 
   return {
     id: _id,
@@ -238,11 +261,16 @@ schema.methods.toAuthIndividualJSON = async function () {
     is_locked,
     is_active,
     token: await this.generateIndividualJWT(),
+    is_email_verified,
+    is_phone_verified, reason, tire,
+    daily_limit
   }
 }
 
 schema.methods.toAuthCorporateJSON = async function () {
-  const { _id, entity_name, name, email, phone, is_verified, rc_number, country_of_incorporation, business_nature } = this
+  const { _id, entity_name, name, email, phone, is_verified, rc_number, country_of_incorporation, business_nature, is_email_verified,
+    is_phone_verified, reason, tire,
+    daily_limit } = this
   return {
     id: _id,
     entity_name,
@@ -254,6 +282,9 @@ schema.methods.toAuthCorporateJSON = async function () {
     country_of_incorporation,
     business_nature,
     token: await this.generateCorporateJWT(),
+    is_email_verified,
+    is_phone_verified, reason, tire,
+    daily_limit
   }
 }
 

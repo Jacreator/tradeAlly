@@ -7,6 +7,8 @@
 node_modules/
 dist/
 build/
+.yarn/
+.pnp.*
 
 # Compiled Java class files
 *.class
@@ -40,6 +42,7 @@ Thumbs.db
 *.app
 *.exe
 *.war
+*.env
 
 # Large media files
 *.mp4
@@ -51,4 +54,3 @@ Thumbs.db
 
 # Environment Files
 .env
-*.env

@@ -3,6 +3,8 @@ import express from "express";
 // local files
 import { AirtimeController } from "@/controllers/AirtimeController";
 import { authenticated } from "@/middleware/authentication";
+import { UserVerification } from "@/middleware/userVerified.middleware";
+import { TireCheck } from "@/middleware/tireCheck.middleware";
 
 const router = express.Router();
 
@@ -16,19 +18,21 @@ const {
   getWalletBalance
 } = new AirtimeController;
 
-router.use(authenticated);
+router.use(
+  authenticated,
+  UserVerification,
+  );
+
 
 router.get('/bills-category', getCategory);
 
 router.get('/bills/categories', getBillsCategories);
 
-router.post('/initiate', initiateAirtime);
+router.post('/initiate', TireCheck, initiateAirtime);
 
 router.post('/verify-trans', verifyTransaction);
 
-router.post('/one-way', airtimeLessThan10k);
-
-router.post('/bill-payment', billPayment);
+router.post('/bill-payment', TireCheck, billPayment);
 
 router.get('/flutterwave-balance', getWalletBalance);
 
