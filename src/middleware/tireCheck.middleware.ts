@@ -16,7 +16,7 @@ export const TireCheck = async (req: any, res: any, next: any) => {
     }
 
     switch (user.tire) {
-        case 'sliver':
+        case 'silver':
             if (req.body.amount <= TIRE_LEVELS.sliver) {
                 next();
             }
