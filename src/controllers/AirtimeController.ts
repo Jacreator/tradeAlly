@@ -402,9 +402,13 @@ export class AirtimeController {
 
   getWalletBalance = async (req: any, res: any, next: any) => {
     try {
+      const balance = await this.flutterWaveService.getBalance();
+      console.log(balance);
+      const available_balance = balance.data[0].available_balance;
+      console.log(available_balance);
       res.status(httpStatus.OK).json({
         message: 'Wallet Balance',
-        data: await this.flutterWaveService.getBalance(),
+        data: available_balance,
       });
     } catch (error) {
       next(error);
