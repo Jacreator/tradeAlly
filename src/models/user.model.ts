@@ -58,6 +58,8 @@ export interface IUser {
   otp_expiry: Date
   tire: string
   daily_limit: number
+  pin_trans_auth: boolean
+  set_pin: boolean
 }
 
 export interface IUserToAuthJSON {
@@ -94,6 +96,8 @@ export interface IUserToAuthJSON {
   otp_expiry: Date
   tire: string
   daily_limit: number
+  pin_trans_auth: boolean
+  set_pin: boolean
 }
 
 export default interface IUserModel extends Document, IUser {
@@ -159,6 +163,8 @@ const schema = new Schema<IUserModel>(
     otp_expiry: { type: Date, default: null },
     tire: { type: String, default: null },
     daily_limit: { type: Number, default: null },
+    pin_trans_auth: { type: Boolean, default: false },
+    set_pin: { type: Boolean, default: false },
   },
   { timestamps: true },
 )
@@ -228,7 +234,7 @@ schema.methods.generateCorporateJWT = async function (): Promise<string> {
 }
 
 schema.methods.toAuthIndividualJSON = async function () {
-  const { _id, account_type, first_name, middle_name, last_name, name, email, phone, is_verified, nationality, occupation, address, city, state, postal_code, country, identification, identification_number, identification_url, proof_of_address, proof_of_address_url, company, company_id, roles, is_sub_account, is_active, is_locked, is_email_verified,
+  const { _id, account_type, first_name, middle_name, last_name, name, email, phone, is_verified, nationality, occupation, address, city, state, postal_code, country, identification, identification_number, identification_url, proof_of_address, proof_of_address_url, company, company_id, roles, is_sub_account, is_active, is_locked, is_email_verified, pin_trans_auth, set_pin,
     is_phone_verified, reason, tire,
     daily_limit } = this
 
@@ -263,13 +269,13 @@ schema.methods.toAuthIndividualJSON = async function () {
     token: await this.generateIndividualJWT(),
     is_email_verified,
     is_phone_verified, reason, tire,
-    daily_limit
+    daily_limit, pin_trans_auth, set_pin,
   }
 }
 
 schema.methods.toAuthCorporateJSON = async function () {
   const { _id, entity_name, name, email, phone, is_verified, rc_number, country_of_incorporation, business_nature, is_email_verified,
-    is_phone_verified, reason, tire,
+    is_phone_verified, reason, tire, pin_trans_auth, set_pin,
     daily_limit } = this
   return {
     id: _id,
@@ -284,7 +290,8 @@ schema.methods.toAuthCorporateJSON = async function () {
     token: await this.generateCorporateJWT(),
     is_email_verified,
     is_phone_verified, reason, tire,
-    daily_limit
+    daily_limit,
+    pin_trans_auth, set_pin,
   }
 }
 
