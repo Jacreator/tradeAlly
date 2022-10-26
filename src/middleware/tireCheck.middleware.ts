@@ -15,28 +15,34 @@ export const TireCheck = async (req: any, res: any, next: any) => {
         throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
     }
 
-    switch (user.tire) {
-        case 'silver':
-            if (req.body.amount <= TIRE_LEVELS.sliver) {
-                next();
-            }
-            break;
-        case 'gold':
-            if (req.body.amount <= TIRE_LEVELS.gold) {
-                next();
-            }
-            break;
-        case 'platinum':
-            if (req.body.amount >= TIRE_LEVELS.platinum) {
-                next();
-            }
-            break;
-        default:
-            res.status(httpStatus.UNAUTHORIZED).json(
-                {
-                    code: httpStatus.UNAUTHORIZED,
-                    message: 'User cannot perform this transaction! advise user to upgrade account'
-                });
+    const amount = parseInt(req.body.amount);
+    try {
+        switch (user.tire) {
+            case 'silver':
+                if (amount <= TIRE_LEVELS.sliver) {
+                    next();
+                }
+                break;
+            case 'gold':
+                if (amount <= TIRE_LEVELS.gold) {
+                    next();
+                }
+                break;
+            case 'platinum':
+                if (amount >= TIRE_LEVELS.platinum || amount <= TIRE_LEVELS.platinum) {
+                    next();
+                }
+
+                break;
+            default:
+                throw new ApiError(httpStatus.UNAUTHORIZED, "tier failing");
+        }
+    } catch (error) {
+        // next(error);
+        res.status(httpStatus.UNAUTHORIZED).json({
+            code: httpStatus.UNAUTHORIZED,
+            message: error.message
+        });
     }
 
 };

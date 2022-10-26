@@ -6,6 +6,7 @@ import { FlutterWaveService } from './../helper/third-party/flutter-wave';
 import { AIRTIME_LIMIT } from '@/config';
 import { generateRandomString } from './../helper/index';
 import { Wallet } from '@/models/wallet.model';
+import { UserIdentity } from '@/models/user_identity.model';
 
 export class AirtimeController {
   private airtimeService: AirtimeServices;
@@ -56,15 +57,19 @@ export class AirtimeController {
       });
 
       // send airtime OTP
+      let OTPMessage = null;
       if (transaction) {
         await transaction.debitEmail({ user, amount });
-        await transaction.sendTWOFACode({ user });
+        if (user.account_type === 'individual' && user.pin_trans_auth !== true) {
+          await transaction.sendTWOFACode({ user });
+          OTPMessage = 'OTP sent to your email';
+        }
       }
 
       const savedBeneficiaries = beneficiaries ? 'beneficiary Saved' : null;
       res.status(httpStatus.OK).json({
         code: httpStatus.OK,
-        message: 'Airtime initiated successfully',
+        message: OTPMessage || 'Enter your PIN to complete the transaction!',
         aboutBeneficiary: savedBeneficiaries,
         data: {
           transaction: {
@@ -87,12 +92,17 @@ export class AirtimeController {
         trans_ref: transactionReference,
       });
       // verify OTP
-      if (transaction.two_fa_code !== twoFA) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid OTP');
+      const userPin = await UserIdentity.findOne({ user_id: user._id });
+      if (!user.pin_trans_auth) {
+        if (transaction && transaction.two_fa_code !== twoFA) {
+          throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'invalid otp!');
+        }
+      } else {
+        if (!userPin.validPin(twoFA)) {
+          throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'invalid Pin provided!');
+        }
       }
-      if (!transaction) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Transaction not found');
-      }
+
       if (transaction.status === 'pending') {
         // make call to fluter wave to verify transaction
         const data = {
@@ -405,7 +415,7 @@ export class AirtimeController {
       const balance = await this.flutterWaveService.getBalance();
       console.log(balance);
       const available_balance = balance.data[0].available_balance;
-      console.log(available_balance);
+      
       res.status(httpStatus.OK).json({
         message: 'Wallet Balance',
         data: available_balance,
