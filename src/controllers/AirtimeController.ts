@@ -357,7 +357,7 @@ export class AirtimeController {
         phone_number: verifyNumber.customer,
       });
       // send debit mail to user
-      await transaction.debitEmail({ user, amount });
+      await transaction.debitEmail({ user, amount, wallet });
 
       // make payment
       const data = {
@@ -375,7 +375,7 @@ export class AirtimeController {
         wallet.available_balance = wallet.available_balance + amount;
         wallet.locked_fund = wallet.locked_fund - amount;
         wallet.save();
-        transaction.reversalEmail({ user, amount });
+        transaction.reversalEmail({ user, amount, wallet });
         throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'Error from third party reach out to the backend Team');
       }
 
