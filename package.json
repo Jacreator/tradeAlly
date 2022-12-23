@@ -26,6 +26,7 @@
     "concurrently": "^6.1.0",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.5",
+    "cron": "^2.1.0",
     "crypto": "^1.0.1",
     "csv-parser": "^3.0.0",
     "debug": "~2.6.9",

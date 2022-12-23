@@ -73,7 +73,7 @@ export class FlutterWaveService {
 
     const response = await this.flw.Bills.create_bill(payload);
 
-      console.log(response);
+    console.log(response);
     if (response.status == "success" || response.status == "pending") {
       return {
         data: response.data,
@@ -84,7 +84,7 @@ export class FlutterWaveService {
     return {
       data: response.data,
       status: response.status,
-      
+
     };
   };
 
@@ -105,14 +105,19 @@ export class FlutterWaveService {
    */
   verifyTransaction = async (payload: any) => {
     try {
-        const response = await this.axiosInstance.get(`/bills/${payload.reference}`);
+      const response = await this.axiosInstance.get(`/bills/${payload.reference}`);
       return {
         data: response.data,
         status: response.status,
         code: httpStatus.OK,
       };
-      } catch (error) {
-        console.log(error)
-      }
+    } catch (error) {
+      // console.error(error);
+      return {
+        data: error.data,
+        status: error.status,
+        code: httpStatus.NOT_FOUND
+      };
+    }
   }
 }

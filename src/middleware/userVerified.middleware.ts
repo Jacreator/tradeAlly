@@ -56,6 +56,6 @@ export const UserVerification = async (req: any, res: any, next: any) => {
                 code: httpStatus.FORBIDDEN,
                 message: 'User not authorized'
             });
-        throw new ApiError(httpStatus.FORBIDDEN, 'User not active');
+        throw new ApiError(httpStatus.FORBIDDEN, 'User not authorized');
     }
 };

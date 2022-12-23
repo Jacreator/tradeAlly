@@ -37,3 +37,4 @@ export const FLUTTERWAVE_PUBLIC_KEY = process.env.FLUTTERWAVE_PUBLIC;
 
 export const TAXTECH_WALLET = process.env.TAXTECH_WALLET;
 export const AIRTIME_LIMIT = process.env.AIRTIME_LIMIT || 10000;
+export const NODE_APP_INSTANCE = process.env.NODE_APP_INSTANCE;

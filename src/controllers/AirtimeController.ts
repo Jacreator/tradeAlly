@@ -333,6 +333,13 @@ export class AirtimeController {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid number Provided');
       }
 
+      const balance = await this.flutterWaveService.getBalance();
+      const flutterBalance = balance.data[0].available_balance;
+
+      if (flutterBalance < amount) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Try again later...');
+      }
+
       let beneficiaries = null;
       if (save) {
         beneficiaries = await this.airtimeService.saveBeneficiary({
@@ -413,7 +420,6 @@ export class AirtimeController {
   getWalletBalance = async (req: any, res: any, next: any) => {
     try {
       const balance = await this.flutterWaveService.getBalance();
-      console.log(balance);
       const available_balance = balance.data[0].available_balance;
       
       res.status(httpStatus.OK).json({

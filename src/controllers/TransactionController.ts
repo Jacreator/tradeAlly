@@ -5,6 +5,9 @@ import { AirtimeServices } from '@/services/AirtimeServices';
 import { Wallet } from "@/models/wallet.model";
 import { User } from "@/models/user.model";
 import ApiError from "@/helper/ApiError";
+import { NODE_APP_INSTANCE } from "@/config";
+
+const CronJob = require('cron').CronJob;
 
 export class TransactionController {
 
@@ -49,57 +52,58 @@ export class TransactionController {
      * @memberOf TransactionsController
      */
     verifyFullerWaveTransaction = async (req: any, res: any, next: any) => {
-        try {
-            const transactions = await Transaction.find({ status: "retry" });
 
-            if (transactions.length < 1) {
-                return res.status(httpStatus.NOT_FOUND).json({
-                    message: 'No transactions found',
-                    statusCode: httpStatus.NOT_FOUND,
-                });
-            }
+            // if (NODE_APP_INSTANCE == '0') {
+            const job = new CronJob('*/01 * * * * *', async function () {
+                    const flutterWaveService = new FlutterWaveService();
+                    const transactions = await Transaction.find({ status: "retry" });
+                    if (transactions.length < 1) {
+                        return res.status(httpStatus.NOT_FOUND).json({
+                            message: 'No transactions found',
+                            statusCode: httpStatus.NOT_FOUND,
+                        });
+                    } else {
+                        transactions.forEach( async (transaction: any) => {
+                            const responded = await flutterWaveService.verifyTransaction({
+                                reference: transaction.trans_ref
+                            });
+                            console.log(`verify response`, responded, transaction.trans_ref);
+                            const wallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
+                            const user = await User.findOne({ user_id: wallet.user_id });
 
-            transactions.forEach(async (transaction: any) => {
+                            if (responded.data.status === 'success') {
+                                // update wallet and send funds to company wallet
+                                const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
+                                    user: user,
+                                    amount_paid: transaction.settlement_amount,
+                                    tran_ref: transaction.trans_ref,
+                                });
 
-                const response = await this.flutterWaveService.verifyTransaction({
-                    reference: transaction.trans_ref,
-                });
+                                if (!taxtechWallet) {
+                                    throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'could not complete money move');
+                                }
+                                transaction.status = 'success';
+                                await transaction.save();
+                            }
 
-                // console.log(`verify response`, response);
-                const wallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
-                const user = await User.findOne({ user_id: wallet.user_id });
-
-                if (response.status === 'success') {
-                    // update wallet and send funds to company wallet
-                    const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
-                        user: user,
-                        amount_paid: transaction.settlement_amount,
-                        tran_ref: transaction.trans_ref,
-                    });
-
-                    if (!taxtechWallet) {
-                        throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'could not complete money move');
+                            if (responded.data.status === 'error') {
+                                // revert funds to user wallet
+                                wallet.available_balance = wallet.available_balance + transaction.settlement_amount;
+                                wallet.locked_fund = wallet.locked_fund - transaction.settlement_amount;
+                                wallet.save();
+                                transaction.status = 'failed';
+                                transaction.reversalEmail({ user, amount: transaction.settlement_amount });
+                                await transaction.save();
+                            }
+                        });
                     }
-                    transaction.status = 'success';
-                    await transaction.save();
-                }
+                });
 
-                if (response.status === 'error') {
-                    // revert funds to user wallet
-                    wallet.available_balance = wallet.available_balance + transaction.settlement_amount;
-                    wallet.locked_fund = wallet.locked_fund - transaction.settlement_amount;
-                    wallet.save();
-                    transaction.status = 'failed';
-                    transaction.reversalEmail({ user, amount: transaction.settlement_amount });
-                    await transaction.save();
-                }
-            });
-
+                job.start();
+            // }
             return res.status(httpStatus.OK).json({
                 message: 'Transactions verified',
             });
-        } catch (error) {
-            return next(error);
-        }
+        
     }
 }
