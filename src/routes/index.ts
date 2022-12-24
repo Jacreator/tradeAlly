@@ -4,6 +4,7 @@ import express from 'express';
 import airtime from './airtime.route';
 import beneficiaries from './beneficiaries.route';
 import transaction from './transaction.route';
+import device from './device.route';
 
 var router = express.Router();
 
@@ -19,5 +20,6 @@ router.get('/welcome', function(req: any, res: any, next: any) {
 router.use('/airtime', airtime);
 router.use('/beneficiaries', beneficiaries);
 router.use('/bills/transactions', transaction);
+router.use('/device', device);
 
 export default router;
