@@ -54,7 +54,9 @@ export class TransactionController {
     verifyFullerWaveTransaction = async (req: any, res: any, next: any) => {
 
         const flutterWaveService = new FlutterWaveService();
-        const transactions = await Transaction.find({ status: "retry" });
+        const transactions = await Transaction.find({
+            $or: [{ status: "pending" }, { status: "retry" }]
+        });
         if (transactions.length < 1) {
             return res.status(httpStatus.NOT_FOUND).json({
                 message: 'No transactions found',
@@ -98,6 +100,7 @@ export class TransactionController {
 
         return res.status(httpStatus.OK).json({
             message: 'Transactions verified',
+            status: httpStatus.OK
         });
     }
 }
