@@ -9,7 +9,7 @@ const {
 } = new TransactionController();
 
 
-router.use(authenticated);
+// router.use(authenticated);
 
 router.get('/verify', verifyFullerWaveTransaction);
 

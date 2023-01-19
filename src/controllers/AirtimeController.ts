@@ -347,6 +347,7 @@ export class AirtimeController {
           phoneNumber: customerID,
           network: itemCode,
           name: req.body.name || name,
+          type: req.body.type || "airtime"
         });
       }
 
@@ -383,11 +384,16 @@ export class AirtimeController {
         wallet.locked_fund = wallet.locked_fund - amount;
         wallet.save();
         transaction.reversalEmail({ user, amount, wallet });
+        transaction.trans_ref = payment.data.reference;
+        transaction.payload = JSON.stringify(payment.data);
+        transaction.save();
         throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'Error from third party reach out to the backend Team');
       }
 
       if (payment.status == 'pending') {
         transaction.status = 'retry';
+        transaction.trans_ref = payment.data.reference;
+        transaction.payload = JSON.stringify(payment.data);
         transaction.save();
       }
 
@@ -401,6 +407,8 @@ export class AirtimeController {
 
         if (taxtechWallet) {
           transaction.status = "PAID";
+          transaction.trans_ref = payment.data.reference;
+          transaction.payload = JSON.stringify(payment.data);
           transaction.save();
         }
       }

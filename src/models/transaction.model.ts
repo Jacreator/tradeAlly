@@ -30,6 +30,7 @@ export interface ITransaction {
   two_fa_code: string
   two_fa_code_verify: boolean
   phone_number: string
+  payload: string
 }
 
 export interface ITransactionToAuthJSON {
@@ -56,6 +57,7 @@ export interface ITransactionToAuthJSON {
   account_details: any
   customer: any
   phone_number: string
+  payload: string
 }
 
 export default interface ITransactionModel extends Document, ITransaction {
@@ -97,6 +99,7 @@ const schema = new Schema<ITransactionModel>(
     two_fa_code: { type: String, default: null },
     two_fa_code_verify: { type: Boolean, default: false },
     phone_number: { type: String, default: null },
+    payload: { type: String, default: null },
   },
   { timestamps: true },
 )
