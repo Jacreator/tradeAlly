@@ -1,6 +1,6 @@
 import { TAXTECH_WALLET } from '@/config';
 import ApiError from '@/helper/ApiError';
-import { Beneficiary } from '@/models/Beneficary.model';
+import { Beneficiary } from '@/models/Beneficiary.model';
 import { Transaction } from '@/models/transaction.model';
 import { Wallet } from '@/models/wallet.model';
 import httpStatus from 'http-status';

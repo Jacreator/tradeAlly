@@ -1,4 +1,4 @@
-import { Beneficiary } from "@/models/Beneficary.model";
+import { Beneficiary } from "@/models/Beneficiary.model";
 import httpStatus from "http-status";
 
 export class BeneficiariesController {
