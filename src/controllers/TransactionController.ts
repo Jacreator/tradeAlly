@@ -7,7 +7,6 @@ import { User } from "@/models/user.model";
 import ApiError from "@/helper/ApiError";
 import { NODE_APP_INSTANCE } from "@/config";
 import { STATUS } from "@/config/constants";
-import { fileUpload } from 'express-fileupload';
 
 const CronJob = require('cron').CronJob;
 
