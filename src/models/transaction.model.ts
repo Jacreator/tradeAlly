@@ -1,75 +1,77 @@
-import { Schema, Document, model } from 'mongoose'
-import uniqueValidator from 'mongoose-unique-validator'
-import privateValidator from 'mongoose-private'
-import { customAlphabet } from 'nanoid'
-import { sendEmail } from '../helper/mailer'
+import { Schema, Document, model } from 'mongoose';
+import uniqueValidator from 'mongoose-unique-validator';
+import privateValidator from 'mongoose-private';
+import { customAlphabet } from 'nanoid';
+import { sendEmail } from '../helper/mailer';
 
 export interface ITransaction {
-  wallet_id: string
-  trans_ref: string
-  pay_ref: string
-  amount_paid: string
-  settlement_amount: string
-  fee: string
-  switchFee: string
-  convenienceFee: string
-  paid_date: string
-  status: string
-  description: string
-  currency: string
-  payment_method: string
-  payment_type: string
-  reciever: string
-  bank_name: string
-  bank_code: string
-  account_name: string
-  account_number: string
-  card_details: any
-  account_details: any
-  customer: any
-  two_fa_code: string
-  two_fa_code_verify: boolean
-  phone_number: string
-  payload: string
+  wallet_id: string;
+  trans_ref: string;
+  pay_ref: string;
+  amount_paid: string;
+  settlement_amount: string;
+  fee: string;
+  switchFee: string;
+  convenienceFee: string;
+  paid_date: string;
+  status: string;
+  description: string;
+  currency: string;
+  payment_method: string;
+  payment_type: string;
+  reciever: string;
+  bank_name: string;
+  bank_code: string;
+  account_name: string;
+  account_number: string;
+  card_details: any;
+  account_details: any;
+  customer: any;
+  two_fa_code: string;
+  two_fa_code_verify: boolean;
+  phone_number: string;
+  payload: string;
+  type: string;
 }
 
 export interface ITransactionToAuthJSON {
-  wallet_id: string
-  trans_ref: string
-  pay_ref: string
-  amount_paid: string
-  settlement_amount: string
-  fee: string
-  switchFee: string
-  convenienceFee: string
-  paid_date: string
-  status: string
-  description: string
-  currency: string
-  payment_method: string
-  payment_type: string
-  reciever: string
-  bank_name: string
-  bank_code: string
-  account_name: string
-  account_number: string
-  card_details: any
-  account_details: any
-  customer: any
-  phone_number: string
-  payload: string
+  wallet_id: string;
+  trans_ref: string;
+  pay_ref: string;
+  amount_paid: string;
+  settlement_amount: string;
+  fee: string;
+  switchFee: string;
+  convenienceFee: string;
+  paid_date: string;
+  status: string;
+  description: string;
+  currency: string;
+  payment_method: string;
+  payment_type: string;
+  reciever: string;
+  bank_name: string;
+  bank_code: string;
+  account_name: string;
+  account_number: string;
+  card_details: any;
+  account_details: any;
+  customer: any;
+  phone_number: string;
+  payload: string;
+  type: string;
 }
 
 export default interface ITransactionModel extends Document, ITransaction {
-  salaryCreditEmail(payload: any): void
-  creditEmail(payload: any): void
-  debitEmail(payload: any): void
-  reversalEmail(payload: any): void
-  setTWOFACode(strength: number): void
-  sendTWOFACode(payload: any): void
-  generateTransactionReference(strength: number): void
-  generatePaymentReference(strength: number): void
-  toTransactionJSON(): ITransactionToAuthJSON
+  salaryCreditEmail(payload: any): void;
+  creditEmail(payload: any): void;
+  debitEmail(payload: any): void;
+  reversalEmail(payload: any): void;
+  setTWOFACode(strength: number): void;
+  sendTWOFACode(payload: any): void;
+  generateTransactionReference(strength: number): void;
+  generatePaymentReference(strength: number): void;
+  toTransactionJSON(): ITransactionToAuthJSON;
 }
 
 const schema = new Schema<ITransactionModel>(
@@ -100,22 +102,29 @@ const schema = new Schema<ITransactionModel>(
     two_fa_code_verify: { type: Boolean, default: false },
     phone_number: { type: String, default: null },
     payload: { type: String, default: null },
+    type: { type: String, default: 'bills-payment' },
   },
   { timestamps: true },
-)
+);
 
 // Plugins
-schema.plugin(uniqueValidator)
-schema.plugin(privateValidator)
+schema.plugin(uniqueValidator);
+schema.plugin(privateValidator);
 
 schema.methods.setTWOFACode = function (strength: number) {
-  const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRESTUVWXYZ', strength)
-  this.two_fa_code = nanoid().toUpperCase()
-}
+  const nanoid = customAlphabet(
+    '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRESTUVWXYZ',
+    strength,
+  );
+  this.two_fa_code = nanoid().toUpperCase();
+};
 
 schema.methods.sendTWOFACode = async function (payload: any) {
-  const { user } = payload
-  const name = user.account_type === 'individual' ? `${user.first_name}` : `${user.entity_name}`
+  const { user } = payload;
+  const name =
+    user.account_type === 'individual'
+      ? `${user.first_name}`
+      : `${user.entity_name}`;
   const body = `
     <h3>Hello ${name}</h3>
 
@@ -138,32 +147,92 @@ schema.methods.sendTWOFACode = async function (payload: any) {
     </p>
 
     Regards.
-  `
-  const data = { from: 'tech@taxtech.com.ng', to: user.email, subject: 'Transaction OTP!', html: body, email: user.email }
+  `;
+  const data = {
+    from: 'tech@taxtech.com.ng',
+    to: user.email,
+    subject: 'Transaction OTP!',
+    html: body,
+    email: user.email,
+  };
 
-  await sendEmail(data)
+  await sendEmail(data);
   // return Promise.resolve();
-}
+};
 
 schema.methods.generateTransactionReference = function (strength: number) {
-  const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRESTUVWXYZ', strength)
-  this.trans_ref = nanoid().toUpperCase()
-}
+  const nanoid = customAlphabet(
+    '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRESTUVWXYZ',
+    strength,
+  );
+  this.trans_ref = nanoid().toUpperCase();
+};
 
 schema.methods.generatePaymentReference = function (strength: number) {
-  const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRESTUVWXYZ', strength)
-  this.pay_ref = nanoid().toUpperCase()
-}
-
+  const nanoid = customAlphabet(
+    '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRESTUVWXYZ',
+    strength,
+  );
+  this.pay_ref = nanoid().toUpperCase();
+};
 
 schema.methods.toTransactionJSON = async function () {
-  const { _id, wallet_id, trans_ref, pay_ref, amount_paid, settlement_amount, fee, paid_date, status, reciever, bank_name, bank_code, account_name, account_number, description, currency, payment_method, payment_type, card_details, account_details, customer } = this
-  return { id: _id, wallet_id, trans_ref, pay_ref, amount_paid, settlement_amount, fee, paid_date, status, reciever, bank_name, bank_code, account_name, account_number, description, currency, payment_method, payment_type, card_details, account_details, customer }
-}
+  const {
+    _id,
+    wallet_id,
+    trans_ref,
+    pay_ref,
+    amount_paid,
+    settlement_amount,
+    fee,
+    paid_date,
+    status,
+    reciever,
+    bank_name,
+    bank_code,
+    account_name,
+    account_number,
+    description,
+    currency,
+    payment_method,
+    payment_type,
+    card_details,
+    account_details,
+    customer,
+    type,
+  } = this;
+  return {
+    id: _id,
+    wallet_id,
+    trans_ref,
+    pay_ref,
+    amount_paid,
+    settlement_amount,
+    fee,
+    paid_date,
+    status,
+    reciever,
+    bank_name,
+    bank_code,
+    account_name,
+    account_number,
+    description,
+    currency,
+    payment_method,
+    payment_type,
+    card_details,
+    account_details,
+    customer,
+    type,
+  };
+};
 
 schema.methods.creditEmail = async function (payload: any) {
-  const { user, amount } = payload
-  const name = user.account_type === 'individual' ? `${user.first_name}` : `${user.entity_name}`
+  const { user, amount } = payload;
+  const name =
+    user.account_type === 'individual'
+      ? `${user.first_name}`
+      : `${user.entity_name}`;
   const body = `
     <h3>Hello ${name},</h3>
 
@@ -176,15 +245,21 @@ schema.methods.creditEmail = async function (payload: any) {
     </p>
 
     Regards.
-  `
-  const data = { from: 'tech@taxtech.com.ng', to: user.email, subject: 'Credit Alert!', html: body, email: user.email }
+  `;
+  const data = {
+    from: 'tech@taxtech.com.ng',
+    to: user.email,
+    subject: 'Credit Alert!',
+    html: body,
+    email: user.email,
+  };
 
-  await sendEmail(data)
+  await sendEmail(data);
   // return Promise.resolve();
-}
+};
 
 schema.methods.salaryCreditEmail = async function (payload: any) {
-  const { user, amount } = payload
+  const { user, amount } = payload;
   const body = `
     <h3>Hello ${user.first_name},</h3>
 
@@ -197,16 +272,25 @@ schema.methods.salaryCreditEmail = async function (payload: any) {
     </p>
 
     Regards.
-  `
-  const data = { from: 'tech@taxtech.com.ng', to: user.email, subject: 'Credit Alert!', html: body, email: user.email }
+  `;
+  const data = {
+    from: 'tech@taxtech.com.ng',
+    to: user.email,
+    subject: 'Credit Alert!',
+    html: body,
+    email: user.email,
+  };
 
-  await sendEmail(data)
+  await sendEmail(data);
   // return Promise.resolve();
-}
+};
 
 schema.methods.debitEmail = async function (payload: any) {
-  const { user, amount, wallet } = payload
-  const name = user.account_type === 'individual' ? `${user.first_name}` : `${user.entity_name}`
+  const { user, amount, wallet } = payload;
+  const name =
+    user.account_type === 'individual'
+      ? `${user.first_name}`
+      : `${user.entity_name}`;
   const body = `
         <!DOCTYPE html>
         <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -402,11 +486,17 @@ schema.methods.debitEmail = async function (payload: any) {
               <div style="margin: 1.5rem 0; display: grid; grid-gap: 1rem">
                 <div class="txnBox">
                   <p class="txn1">Amount</p>
-                  <p class="txn2">${new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount)}</p>
+                  <p class="txn2">${new Intl.NumberFormat('en-NG', {
+                    style: 'currency',
+                    currency: 'NGN',
+                  }).format(amount)}</p>
                 </div>
                 <div class="txnBox">
                   <p class="txn1">Balance</p>
-                  <p class="txn2">${new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(Number(wallet.available_balance) / 100)}</p>
+                  <p class="txn2">${new Intl.NumberFormat('en-NG', {
+                    style: 'currency',
+                    currency: 'NGN',
+                  }).format(Number(wallet.available_balance) / 100)}</p>
                 </div>
                 <div class="txnBox">
                   <p class="txn1">Date</p>
@@ -463,16 +553,25 @@ schema.methods.debitEmail = async function (payload: any) {
             </div>
           </body>
         </html>
-  `
-  const data = { from: 'tech@taxtech.com.ng', to: user.email, subject: 'Debit Alert!', html: body, email: user.email }
+  `;
+  const data = {
+    from: 'tech@taxtech.com.ng',
+    to: user.email,
+    subject: 'Debit Alert!',
+    html: body,
+    email: user.email,
+  };
 
-  await sendEmail(data)
+  await sendEmail(data);
   // return Promise.resolve();
-}
+};
 
 schema.methods.reversalEmail = async function (payload: any) {
-  const { user, amount, wallet } = payload
-  const name = user.account_type === 'individual' ? `${user.first_name}` : `${user.entity_name}`
+  const { user, amount, wallet } = payload;
+  const name =
+    user.account_type === 'individual'
+      ? `${user.first_name}`
+      : `${user.entity_name}`;
   const body = `
         <!DOCTYPE html>
         <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -668,11 +767,17 @@ schema.methods.reversalEmail = async function (payload: any) {
               <div style="margin: 1.5rem 0; display: grid; grid-gap: 1rem">
                 <div class="txnBox">
                   <p class="txn1">Amount</p>
-                  <p class="txn2">${new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount)}</p>
+                  <p class="txn2">${new Intl.NumberFormat('en-NG', {
+                    style: 'currency',
+                    currency: 'NGN',
+                  }).format(amount)}</p>
                 </div>
                 <div class="txnBox">
                   <p class="txn1">Balance</p>
-                  <p class="txn2">${new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(Number(wallet.available_balance) / 100)}</p>
+                  <p class="txn2">${new Intl.NumberFormat('en-NG', {
+                    style: 'currency',
+                    currency: 'NGN',
+                  }).format(Number(wallet.available_balance) / 100)}</p>
                 </div>
                 <div class="txnBox">
                   <p class="txn1">Date</p>
@@ -729,12 +834,17 @@ schema.methods.reversalEmail = async function (payload: any) {
             </div>
           </body>
         </html>
-  `
-  const data = { from: 'tech@taxtech.com.ng', to: user.email, subject: 'Debit Reversal!', html: body, email: user.email }
+  `;
+  const data = {
+    from: 'tech@taxtech.com.ng',
+    to: user.email,
+    subject: 'Debit Reversal!',
+    html: body,
+    email: user.email,
+  };
 
-  await sendEmail(data)
+  await sendEmail(data);
   // return Promise.resolve();
-}
+};
 
-
-export const Transaction = model<ITransactionModel>('Transaction', schema)
+export const Transaction = model<ITransactionModel>('Transaction', schema);

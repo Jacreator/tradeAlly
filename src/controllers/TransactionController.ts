@@ -6,6 +6,8 @@ import { Wallet } from "@/models/wallet.model";
 import { User } from "@/models/user.model";
 import ApiError from "@/helper/ApiError";
 import { NODE_APP_INSTANCE } from "@/config";
+import { STATUS } from "@/config/constants";
+import { fileUpload } from 'express-fileupload';
 
 const CronJob = require('cron').CronJob;
 
@@ -55,7 +57,7 @@ export class TransactionController {
 
         const flutterWaveService = new FlutterWaveService();
         const transactions = await Transaction.find({
-            $or: [{ status: "pending" }, { status: "retry" }]
+            $or: [{ status: "pending" }, { status: "retry" }, { status: "mart_payment_pending" }]
         });
         if (transactions.length < 1) {
             return res.status(httpStatus.NOT_FOUND).json({
@@ -67,7 +69,6 @@ export class TransactionController {
                 const responded = await flutterWaveService.verifyTransaction({
                     reference: transaction.trans_ref
                 });
-                console.log(`verify response`, responded, transaction.trans_ref);
                 const wallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
                 const user = await User.findOne({ user_id: wallet.user_id });
 
@@ -77,12 +78,13 @@ export class TransactionController {
                         user: user,
                         amount_paid: transaction.settlement_amount,
                         tran_ref: transaction.trans_ref,
+                        type: transaction.type
                     });
 
                     if (!taxtechWallet) {
                         throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'could not complete money move');
                     }
-                    transaction.status = 'success';
+                    transaction.status = STATUS.finished;
                     await transaction.save();
                 }
 
@@ -91,7 +93,7 @@ export class TransactionController {
                     wallet.available_balance = wallet.available_balance + transaction.settlement_amount;
                     wallet.locked_fund = wallet.locked_fund - transaction.settlement_amount;
                     wallet.save();
-                    transaction.status = 'failed';
+                    transaction.status = STATUS.failed;
                     transaction.reversalEmail({ user, amount: transaction.settlement_amount });
                     await transaction.save();
                 }
