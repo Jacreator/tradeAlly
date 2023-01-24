@@ -7,6 +7,7 @@ import { AIRTIME_LIMIT } from '@/config';
 import { generateRandomString } from './../helper/index';
 import { Wallet } from '@/models/wallet.model';
 import { UserIdentity } from '@/models/user_identity.model';
+import { STATUS } from '@/config/constants';
 
 export class AirtimeController {
   private airtimeService: AirtimeServices;
@@ -347,7 +348,7 @@ export class AirtimeController {
           phoneNumber: customerID,
           network: itemCode,
           name: req.body.name || name,
-          type: req.body.type || "airtime"
+          type: type || "airtime"
         });
       }
 
@@ -358,11 +359,12 @@ export class AirtimeController {
       const transaction = await this.airtimeService.saveToTransaction({
         wallet_id: wallet.wallet_id,
         settlement_amount: amount,
-        description: 'data',
+        description: STATUS.pending,
         currency: 'NGN',
         payment_type: billerName,
-        payment_method: 'wallet',
+        payment_method: 'wallet-mart',
         phone_number: verifyNumber.customer,
+        type: type || "bills-payment"
       });
       // send debit mail to user
       await transaction.debitEmail({ user, amount, wallet });
@@ -391,7 +393,7 @@ export class AirtimeController {
       }
 
       if (payment.status == 'pending') {
-        transaction.status = 'retry';
+        transaction.status = 'mart_payment_pending';
         transaction.trans_ref = payment.data.reference;
         transaction.payload = JSON.stringify(payment.data);
         transaction.save();
@@ -399,14 +401,18 @@ export class AirtimeController {
 
       if (payment.status == 'success') {
         // on success add funds to company wallet
+        transaction.status = STATUS.partyFinished;
+        transaction.save();
+        
         const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
           user: user,
           amount_paid: amount,
           tran_ref: transaction.trans_ref,
+          type
         });
 
         if (taxtechWallet) {
-          transaction.status = "PAID";
+          transaction.status = STATUS.finished;
           transaction.trans_ref = payment.data.reference;
           transaction.payload = JSON.stringify(payment.data);
           transaction.save();

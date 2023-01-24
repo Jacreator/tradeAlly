@@ -3,3 +3,11 @@ export const TIRE_LEVELS: any = {
     'gold': 500000,
     'platinum': 500000
 }
+
+export const STATUS: any = {
+    'initiated': 'initiated',
+    'finished': 'completed',
+    'pending': 'mart_payment_pending',
+    'failed': 'failed',
+    'partyFinished': 'party_finished',
+}
