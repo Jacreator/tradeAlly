@@ -7,6 +7,7 @@ import { AIRTIME_LIMIT } from '@/config';
 import { generateRandomString } from './../helper/index';
 import { Wallet } from '@/models/wallet.model';
 import { UserIdentity } from '@/models/user_identity.model';
+import { STATUS } from '@/config/constants';
 
 export class AirtimeController {
   private airtimeService: AirtimeServices;
@@ -80,6 +81,7 @@ export class AirtimeController {
       });
     } catch (error) {
       next(error);
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
     }
   };
 
@@ -120,7 +122,7 @@ export class AirtimeController {
           // update transaction status to retry
           transaction.status = 'retry';
           transaction.pay_ref = payment.data.tx_ref;
-          transaction.save();
+          await transaction.save();
           // send pending
 
           res.status().json({
@@ -151,12 +153,17 @@ export class AirtimeController {
             user_id: user._id
           });
 
-          wallet.available_balance = wallet.available_balance + transaction.settlement_amount;
-          wallet.locked_fund = wallet.locked_fund - Number(transaction.settlement_amount);
+          wallet.available_balance = (
+            Number(wallet.available_balance) + wallet.currencyUnit(transaction.settlement_amount)
+          ).toString();
+          wallet.locked_fund = (
+            Number(wallet.locked_fund) -
+            wallet.currencyUnit(transaction.settlement_amount)
+          ).toString();
+          await wallet.save();
           transaction.status = 'failed';
-          wallet.save();
           transaction.reversalEmail({ user, amount: transaction.settlement_amount });
-          transaction.save();
+          await transaction.save();
           res.status(httpStatus.UNPROCESSABLE_ENTITY).json({
             code: httpStatus.UNPROCESSABLE_ENTITY,
             message: 'Transaction failed',
@@ -171,6 +178,7 @@ export class AirtimeController {
       }
     } catch (error) {
       next(error);
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
     }
   };
 
@@ -191,6 +199,7 @@ export class AirtimeController {
       });
     } catch (error) {
       next(error);
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
     }
   };
 
@@ -217,6 +226,7 @@ export class AirtimeController {
       });
     } catch (error) {
       next(error);
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
     }
   }
 
@@ -308,6 +318,7 @@ export class AirtimeController {
       }
     } catch (error) {
       next(error);
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
     }
   };
 
@@ -333,6 +344,13 @@ export class AirtimeController {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid number Provided');
       }
 
+      const balance = await this.flutterWaveService.getBalance();
+      const flutterBalance = balance.data[0].available_balance;
+
+      if (flutterBalance < amount) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Try again later...');
+      }
+
       let beneficiaries = null;
       if (save) {
         beneficiaries = await this.airtimeService.saveBeneficiary({
@@ -340,6 +358,7 @@ export class AirtimeController {
           phoneNumber: customerID,
           network: itemCode,
           name: req.body.name || name,
+          type: type || "airtime"
         });
       }
 
@@ -350,14 +369,15 @@ export class AirtimeController {
       const transaction = await this.airtimeService.saveToTransaction({
         wallet_id: wallet.wallet_id,
         settlement_amount: amount,
-        description: 'data',
+        description: STATUS.pending,
         currency: 'NGN',
         payment_type: billerName,
-        payment_method: 'wallet',
+        payment_method: 'wallet-mart',
         phone_number: verifyNumber.customer,
+        type: type || "bills-payment"
       });
       // send debit mail to user
-      await transaction.debitEmail({ user, amount });
+      await transaction.debitEmail({ user, amount, wallet });
 
       // make payment
       const data = {
@@ -372,29 +392,46 @@ export class AirtimeController {
 
       if (payment.status == 'error') {
         // reverse funds and send a reverse mail
-        wallet.available_balance = wallet.available_balance + amount;
-        wallet.locked_fund = wallet.locked_fund - amount;
-        wallet.save();
-        transaction.reversalEmail({ user, amount });
+        wallet.available_balance = (
+          Number(wallet.available_balance) + wallet.currencyUnit(amount)
+        ).toString();
+        wallet.locked_fund = (
+          Number(wallet.locked_fund) -
+          wallet.currencyUnit(amount)
+        ).toString();
+        await wallet.save();
+        transaction.reversalEmail({ user, amount, wallet });
+        transaction.trans_ref = payment.data.reference;
+        transaction.payload = JSON.stringify(payment.data);
+        transaction.status = STATUS.failed;
+        await transaction.save();
         throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'Error from third party reach out to the backend Team');
       }
 
       if (payment.status == 'pending') {
-        transaction.status = 'retry';
-        transaction.save();
+        transaction.status = 'mart_payment_pending';
+        transaction.trans_ref = payment.data.reference;
+        transaction.payload = JSON.stringify(payment.data);
+        await transaction.save();
       }
 
       if (payment.status == 'success') {
         // on success add funds to company wallet
+        transaction.status = STATUS.partyFinished;
+        await transaction.save();
+        
         const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
           user: user,
           amount_paid: amount,
           tran_ref: transaction.trans_ref,
+          type
         });
 
         if (taxtechWallet) {
-          transaction.status = "PAID";
-          transaction.save();
+          transaction.status = STATUS.finished;
+          transaction.trans_ref = payment.data.reference;
+          transaction.payload = JSON.stringify(payment.data);
+          await transaction.save();
         }
       }
 
@@ -407,13 +444,13 @@ export class AirtimeController {
       });
     } catch (error) {
       next(error);
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
     }
   };
 
   getWalletBalance = async (req: any, res: any, next: any) => {
     try {
       const balance = await this.flutterWaveService.getBalance();
-      console.log(balance);
       const available_balance = balance.data[0].available_balance;
       
       res.status(httpStatus.OK).json({
@@ -422,6 +459,7 @@ export class AirtimeController {
       });
     } catch (error) {
       next(error);
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
     }
   }
 }
