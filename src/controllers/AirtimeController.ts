@@ -154,11 +154,11 @@ export class AirtimeController {
           });
 
           wallet.available_balance = (
-            Number(wallet.available_balance) + wallet.currencyUnit(transaction.settlement_amount)
+            Number(wallet.available_balance) + wallet.currencyToKoboUnit(transaction.settlement_amount)
           ).toString();
           wallet.locked_fund = (
             Number(wallet.locked_fund) -
-            wallet.currencyUnit(transaction.settlement_amount)
+            wallet.currencyToKoboUnit(transaction.settlement_amount)
           ).toString();
           await wallet.save();
           transaction.status = 'failed';
@@ -393,11 +393,11 @@ export class AirtimeController {
       if (payment.status == 'error') {
         // reverse funds and send a reverse mail
         wallet.available_balance = (
-          Number(wallet.available_balance) + wallet.currencyUnit(amount)
+          Number(wallet.available_balance) + wallet.currencyToKoboUnit(amount)
         ).toString();
         wallet.locked_fund = (
           Number(wallet.locked_fund) -
-          wallet.currencyUnit(amount)
+          wallet.currencyToKoboUnit(amount)
         ).toString();
         await wallet.save();
         transaction.reversalEmail({ user, amount, wallet });

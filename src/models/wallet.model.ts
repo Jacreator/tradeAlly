@@ -32,8 +32,8 @@ export default interface IWalletModel extends Document, IWallet {
   generateWalletId(strength: number): void
   setTWOFACode(strength: number): void
   toAuthWalletJSON(): IWalletToAuthJSON
-  currencyUnit(amount: string): number
-  currencyValue(amount: string): number
+  currencyToKoboUnit(amount: string): number
+  currencyToNariaValue(amount: string): number
 
   debitWalletToLockFunds(amount: string): void
   debitLockedFundAndLedger(amount: string): void
@@ -69,11 +69,11 @@ schema.methods.setTWOFACode = function (strength: number) {
   this.two_fa_code = nanoid().toUpperCase();
 }
 
-schema.methods.currencyUnit = function (amount: string) {
+schema.methods.currencyToKoboUnit = function (amount: string) {
   return Number(amount) * 100
 }
 
-schema.methods.currencyValue = function (amount: string) {
+schema.methods.currencyToNariaValue = function (amount: string) {
   return Number(amount) / 100
 }
 

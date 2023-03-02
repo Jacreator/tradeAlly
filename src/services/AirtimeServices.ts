@@ -27,7 +27,7 @@ export class AirtimeServices {
       const userWallet = await Wallet.findOne({ user_id: user._id });
       if (
         Number(userWallet.available_balance) <
-        userWallet.currencyUnit(Number(amount).toString())
+        userWallet.currencyToKoboUnit(Number(amount).toString())
       ) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
@@ -37,9 +37,9 @@ export class AirtimeServices {
       const wallet = await Wallet.findOne({ user_id: user._id });
 
       wallet.available_balance =
-        wallet.available_balance - userWallet.currencyUnit(amount.toString());
+        wallet.available_balance - userWallet.currencyToKoboUnit(amount.toString());
       wallet.locked_fund =
-        wallet.locked_fund + userWallet.currencyUnit(amount.toString());
+        wallet.locked_fund + userWallet.currencyToKoboUnit(amount.toString());
       await wallet.save();
 
       return wallet;
@@ -82,20 +82,20 @@ export class AirtimeServices {
       // remove founds from locked funds
       userWallet.locked_fund = (
         Number(userWallet.locked_fund) -
-        Number(taxTechWallet.currencyUnit(payload.amount_paid))
+        Number(taxTechWallet.currencyToKoboUnit(payload.amount_paid))
       ).toString();
 
       // remove money from ledger balance
       userWallet.ledger_balance = (
         Number(userWallet.ledger_balance) -
-        Number(taxTechWallet.currencyUnit(payload.amount_paid))
+        Number(taxTechWallet.currencyToKoboUnit(payload.amount_paid))
       ).toString();
 
       // add fund to company wallet
       taxTechWallet.available_balance = (
         Number(taxTechWallet.available_balance) +
         Number(
-          taxTechWallet.currencyUnit(
+          taxTechWallet.currencyToKoboUnit(
             this.calculateProfit({
               amount: payload.amount_paid,
               type: payload.type,
@@ -106,7 +106,7 @@ export class AirtimeServices {
       taxTechWallet.ledger_balance = (
         Number(taxTechWallet.ledger_balance) +
         Number(
-          taxTechWallet.currencyUnit(
+          taxTechWallet.currencyToKoboUnit(
             this.calculateProfit({
               amount: payload.amount_paid,
               type: payload.type,
