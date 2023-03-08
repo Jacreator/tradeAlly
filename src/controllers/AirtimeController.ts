@@ -231,96 +231,96 @@ export class AirtimeController {
   }
 
   // amount more that 10k
-  airtimeLessThan10k = async (req: any, res: any, next: any) => {
-    try {
-      const { user } = req;
-      const { amount, phoneNumber, save, itemCode, code, billerName } =
-        req.body;
-      let beneficiaries = null;
-      if (save) {
-        beneficiaries = await this.airtimeService.saveBeneficiary({
-          user_id: user._id,
-          phoneNumber,
-          network: itemCode,
-          name: req.body.name,
-        });
-      }
-      // verify number and biller with flutter wave
-      const verifyNumber = await this.flutterWaveService.verifyNumber({
-        customer: phoneNumber,
-        code,
-        item_code: itemCode,
-      });
+  // airtimeLessThan10k = async (req: any, res: any, next: any) => {
+  //   try {
+  //     const { user } = req;
+  //     const { amount, phoneNumber, save, itemCode, code, billerName } =
+  //       req.body;
+  //     let beneficiaries = null;
+  //     if (save) {
+  //       beneficiaries = await this.airtimeService.saveBeneficiary({
+  //         user_id: user._id,
+  //         phoneNumber,
+  //         network: itemCode,
+  //         name: req.body.name,
+  //       });
+  //     }
+  //     // verify number and biller with flutter wave
+  //     const verifyNumber = await this.flutterWaveService.verifyNumber({
+  //       customer: phoneNumber,
+  //       code,
+  //       item_code: itemCode,
+  //     });
 
-      if (!verifyNumber) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid Phone number');
-      }
-      // check for amount less than 10k
-      if (amount < AIRTIME_LIMIT) {
-        const transaction = new Transaction();
+  //     if (!verifyNumber) {
+  //       throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid Phone number');
+  //     }
+  //     // check for amount less than 10k
+  //     if (amount < AIRTIME_LIMIT) {
+  //       const transaction = new Transaction();
 
-        // remove funds from wallet and lock funds
-        const wallet = await this.airtimeService.debitAndLockFund(user, amount);
+  //       // remove funds from wallet and lock funds
+  //       const wallet = await this.airtimeService.debitAndLockFund(user, amount);
 
-        // make payment to flutter wave
-        const ref = generateRandomString(10);
-        const data = {
-          country: 'NG',
-          customer: verifyNumber.customer,
-          amount,
-          recurrence: 'ONCE',
-          type: billerName,
-          reference: ref,
-          biller_name: billerName,
-        };
+  //       // make payment to flutter wave
+  //       const ref = generateRandomString(10);
+  //       const data = {
+  //         country: 'NG',
+  //         customer: verifyNumber.customer,
+  //         amount,
+  //         recurrence: 'ONCE',
+  //         type: billerName,
+  //         reference: ref,
+  //         biller_name: billerName,
+  //       };
 
-        const payment = await this.flutterWaveService.makePayment(data);
+  //       const payment = await this.flutterWaveService.makePayment(data);
 
-        // on fail reserve
-        if (payment.status == 'error') {
-          // reverse funds and send a reverse mail
-          wallet.available_balance = wallet.available_balance + amount;
-          wallet.locked_fund = wallet.locked_fund - amount;
+  //       // on fail reserve
+  //       if (payment.status == 'error') {
+  //         // reverse funds and send a reverse mail
+  //         wallet.available_balance = wallet.available_balance + amount;
+  //         wallet.locked_fund = wallet.locked_fund - amount;
 
-          throw new ApiError(httpStatus.BAD_REQUEST, 'Error from third party');
-        }
-        // on success add funds to company wallet
-        if (payment.status == 'success') {
-          const companyWallet = this.airtimeService.sendFundToCompanyWallet({
-            user_id: user._Id,
-            amount_paid: amount,
-            tran_ref: ref,
-          });
-          transaction.wallet_id = wallet.wallet_id;
-          transaction.settlement_amount = amount;
-          transaction.description = 'airtime';
-          transaction.currency = 'NGN';
-          transaction.payment_type = 'airtime';
-          transaction.payment_method = 'wallet';
-          transaction.status = 'completed';
-          transaction.phone_number = verifyNumber.customer;
-          transaction.two_fa_code_verify = true;
-          await transaction.save();
-        }
-        // send debit mail to user
-        await transaction.debitEmail({ user, amount });
-        // return res
-        res.status(httpStatus.OK).json({
-          statusCode: httpStatus.OK,
-          message: 'Airtime successful',
-          data: transaction,
-        });
-      } else {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          'Please Use 2FA for this kind of amount',
-        );
-      }
-    } catch (error) {
-      next(error);
-      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
-    }
-  };
+  //         throw new ApiError(httpStatus.BAD_REQUEST, 'Error from third party');
+  //       }
+  //       // on success add funds to company wallet
+  //       if (payment.status == 'success') {
+  //         const companyWallet = this.airtimeService.sendFundToCompanyWallet({
+  //           user_id: user._Id,
+  //           amount_paid: amount,
+  //           tran_ref: ref,
+  //         });
+  //         transaction.wallet_id = wallet.wallet_id;
+  //         transaction.settlement_amount = amount;
+  //         transaction.description = 'airtime';
+  //         transaction.currency = 'NGN';
+  //         transaction.payment_type = 'airtime';
+  //         transaction.payment_method = 'wallet';
+  //         transaction.status = 'completed';
+  //         transaction.phone_number = verifyNumber.customer;
+  //         transaction.two_fa_code_verify = true;
+  //         await transaction.save();
+  //       }
+  //       // send debit mail to user
+  //       await transaction.debitEmail({ user, amount });
+  //       // return res
+  //       res.status(httpStatus.OK).json({
+  //         statusCode: httpStatus.OK,
+  //         message: 'Airtime successful',
+  //         data: transaction,
+  //       });
+  //     } else {
+  //       throw new ApiError(
+  //         httpStatus.BAD_REQUEST,
+  //         'Please Use 2FA for this kind of amount',
+  //       );
+  //     }
+  //   } catch (error) {
+  //     next(error);
+  //     throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
+  //   }
+  // };
 
   // payment for for all bills
   billPayment = async (req: any, res: any, next: any) => {
@@ -344,10 +344,12 @@ export class AirtimeController {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid number Provided');
       }
 
+      // check flutterwave balance
       const balance = await this.flutterWaveService.getBalance();
       const flutterBalance = balance.data[0].available_balance;
 
       if (flutterBalance < amount) {
+        // TODO: notify admin to top fluterwave account
         throw new ApiError(httpStatus.BAD_REQUEST, 'Try again later...');
       }
 
@@ -376,6 +378,7 @@ export class AirtimeController {
         phone_number: verifyNumber.customer,
         type: type || "bills-payment"
       });
+
       // send debit mail to user
       await transaction.debitEmail({ user, amount, wallet });
 
@@ -388,6 +391,7 @@ export class AirtimeController {
         reference: transaction.trans_ref,
         recurrence: 'ONCE',
       };
+      // make flutterwave payment
       const payment = await this.flutterWaveService.makePayment(data);
 
       if (payment.status == 'error') {
@@ -401,10 +405,26 @@ export class AirtimeController {
         ).toString();
         await wallet.save();
         transaction.reversalEmail({ user, amount, wallet });
-        transaction.trans_ref = payment.data.reference;
         transaction.payload = JSON.stringify(payment.data);
         transaction.status = STATUS.failed;
+        transaction.description = 'mart_payment_canceled';
         await transaction.save();
+        // make reversal transaction
+        const trx = new Transaction();
+        (trx.wallet_id = wallet.wallet_id);
+        (trx.amount_paid = amount);
+        trx.fee = '0';
+        trx.settlement_amount = amount;
+        trx.status = 'completed';
+        trx.description = `mart_payment_Reversal`;
+        trx.reciever = wallet.wallet_id;
+        trx.currency = 'NGN';
+        trx.payment_method = 'wallet-wallet';
+        trx.payment_type = 'credit';
+        trx.generateTransactionReference(10);
+        trx.generatePaymentReference(10);
+        trx.two_fa_code_verify = true;
+        await trx.save();
         throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'Error from third party reach out to the backend Team');
       }
 

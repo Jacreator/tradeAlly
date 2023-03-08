@@ -12,7 +12,7 @@ const {
   initiateAirtime,
   verifyTransaction,
   getCategory,
-  airtimeLessThan10k,
+  // airtimeLessThan10k,
   billPayment,
   getBillsCategories,
   getWalletBalance
