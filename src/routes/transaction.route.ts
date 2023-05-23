@@ -5,12 +5,15 @@ import { authenticated } from "@/middleware/authentication";
 const router = express.Router();
 
 const { 
-    verifyFullerWaveTransaction
+    verifyFullerWaveTransaction,
+    getTokenFromFlutterWave
 } = new TransactionController();
 
 
 // router.use(authenticated);
 
 router.get('/verify', verifyFullerWaveTransaction);
+
+router.get('/send-token', getTokenFromFlutterWave);
 
 export default router;
