@@ -469,8 +469,7 @@ schema.methods.sendTokenToUser = async function (payload: any) {
       <p class="page-text">Dear ${name}</p>
       <br />
       <p class="page-text">
-        Congratulations on your recent purchase of electricity through our innovative platform! We are thrilled to
-        provide you with an exclusive token that unlocks a world of boundless power and convenience.
+        Congratulations on your recent purchase of electricity through TaxiTPay!
       <p class="page-text">Without further ado, please find your unique electricity token below:</p>
 
       <div style="margin: 1.5rem 0">
@@ -533,10 +532,10 @@ schema.methods.sendTokenToUser = async function (payload: any) {
   //  of <b>NGN ${amount}</b>
   const data = {
     from: POSTMARK_MAIL_FROM,
-    to: user.email,
-    subject: 'Expense OTP!',
+    to: this.email,
+    subject: 'Bills Token!',
     html: body,
-    email: user.email,
+    email: this.email,
   };
 
   await sendEmail(data);

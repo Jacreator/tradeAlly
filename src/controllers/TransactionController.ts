@@ -117,9 +117,10 @@ export class TransactionController {
             const transactions = await Transaction.find({
                 status: { $in: ['completed'] },
                 payment_method: 'wallet-mart',
+                sent_token: false,
                 type: {
                     $in: ['power', 'bills-payment']
-                }
+                },
             });
             if (!transactions) {
                 throw new ApiError(httpStatus.BAD_REQUEST, 'Transaction not found');
@@ -132,6 +133,7 @@ export class TransactionController {
                     reference: transactionPayload.reference
                 });
                 // send the token to the user
+
                 const transactionWallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
                 const user = await User.findOne({ user_id: transactionWallet.user_id });
                 if (!responded.data.token || responded.data.token != undefined || responded.data.token != '') {
