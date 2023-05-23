@@ -32,6 +32,7 @@ export interface ITransaction {
   phone_number: string;
   payload: string;
   type: string;
+  sent_token: boolean;
 }
 
 export interface ITransactionToAuthJSON {
@@ -60,6 +61,7 @@ export interface ITransactionToAuthJSON {
   phone_number: string;
   payload: string;
   type: string;
+  sent_token: boolean;
 }
 
 export default interface ITransactionModel extends Document, ITransaction {
@@ -103,6 +105,7 @@ const schema = new Schema<ITransactionModel>(
     phone_number: { type: String, default: null },
     payload: { type: String, default: null },
     type: { type: String, default: 'bills-payment' },
+    sent_token: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
@@ -200,6 +203,7 @@ schema.methods.toTransactionJSON = async function () {
     account_details,
     customer,
     type,
+    sent_token
   } = this;
   return {
     id: _id,
@@ -224,6 +228,7 @@ schema.methods.toTransactionJSON = async function () {
     account_details,
     customer,
     type,
+    sent_token
   };
 };
 

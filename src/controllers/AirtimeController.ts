@@ -349,7 +349,6 @@ export class AirtimeController {
       const flutterBalance = balance.data[0].available_balance;
 
       if (flutterBalance < amount) {
-        // TODO: notify admin to top fluterwave account
         throw new ApiError(httpStatus.BAD_REQUEST, 'Try again later...');
       }
 
@@ -380,7 +379,7 @@ export class AirtimeController {
       });
 
       // send debit mail to user
-      await transaction.debitEmail({ user, amount, wallet });
+      transaction.debitEmail({ user, amount, wallet });
 
       // make payment
       const data = {
@@ -416,7 +415,7 @@ export class AirtimeController {
         trx.fee = '0';
         trx.settlement_amount = amount;
         trx.status = 'completed';
-        trx.description = `mart_payment_Reversal`;
+        trx.description = `mart_payment_reversal`;
         trx.reciever = wallet.wallet_id;
         trx.currency = 'NGN';
         trx.payment_method = 'wallet-wallet';
@@ -440,6 +439,7 @@ export class AirtimeController {
         transaction.status = STATUS.partyFinished;
         await transaction.save();
         
+        // this credit taxtech wallet account
         const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
           user: user,
           amount_paid: amount,
@@ -448,7 +448,7 @@ export class AirtimeController {
         });
 
         if (taxtechWallet) {
-          transaction.status = STATUS.finished;
+          transaction.status = STATUS.completed;
           transaction.trans_ref = payment.data.reference;
           transaction.payload = JSON.stringify(payment.data);
           await transaction.save();

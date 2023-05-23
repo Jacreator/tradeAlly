@@ -6,7 +6,7 @@ export const TIRE_LEVELS: any = {
 
 export const STATUS: any = {
     'initiated': 'initiated',
-    'finished': 'completed',
+    'completed': 'completed',
     'pending': 'mart_payment_pending',
     'failed': 'failed',
     'partyFinished': 'party_finished',

@@ -17,8 +17,9 @@ export const APP_NAME = 'Bills Payment Service'
 export const APP_URL = process.env.APP_URL
 export const FRONT_END_URL = process.env.FRONT_END_URL
 
-export const POSTMARK_MAIL_URL = process.env.POSTMARK_MAIL_URL
-export const POSTMARK_MAIL_TOKEN = process.env.POSTMARK_MAIL_TOKEN
+export const POSTMARK_MAIL_URL = process.env.POSTMARK_MAIL_URL;
+export const POSTMARK_MAIL_TOKEN = process.env.POSTMARK_MAIL_TOKEN;
+export const POSTMARK_MAIL_FROM = process.env.POSTMARK_MAIL_FROM;
 
 export const EBULK_URL = process.env.EBULK_URL
 export const EBULK_API_KEY = process.env.EBULK_API_KEY

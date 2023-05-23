@@ -53,55 +53,101 @@ export class TransactionController {
      * @memberOf TransactionsController
      */
     verifyFullerWaveTransaction = async (req: any, res: any, next: any) => {
-
-        const flutterWaveService = new FlutterWaveService();
-        const transactions = await Transaction.find({
-            $or: [{ status: "pending" }, { status: "retry" }, { status: "mart_payment_pending" }]
-        });
-        if (transactions.length < 1) {
-            return res.status(httpStatus.NOT_FOUND).json({
-                message: 'No transactions found',
-                statusCode: httpStatus.NOT_FOUND,
+        try {
+            const transactions = await Transaction.find({
+                status: "mart_payment_pending"
             });
-        } else {
-            transactions.forEach(async (transaction: any) => {
-                const responded = await flutterWaveService.verifyTransaction({
-                    reference: transaction.trans_ref
+            if (transactions.length < 1) {
+                return res.status(httpStatus.NOT_FOUND).json({
+                    message: 'No transactions found',
+                    statusCode: httpStatus.NOT_FOUND,
                 });
-                const wallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
-                const user = await User.findOne({ user_id: wallet.user_id });
-
-                if (responded.data.status === 'success') {
-                    // update wallet and send funds to company wallet
-                    const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
-                        user: user,
-                        amount_paid: transaction.settlement_amount,
-                        tran_ref: transaction.trans_ref,
-                        type: transaction.type
+            } else {
+                transactions.forEach(async (transaction: any) => {
+                    const responded = await this.flutterWaveService.verifyTransaction({
+                        reference: transaction.trans_ref
                     });
-
-                    if (!taxtechWallet) {
-                        throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'could not complete money move');
+                    // skip the transaction if response is still pending
+                    if (responded.data.status === 'pending') {
+                        return;
                     }
-                    transaction.status = STATUS.finished;
-                    await transaction.save();
-                }
+                    const wallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
+                    const user = await User.findOne({ user_id: wallet.user_id });
 
-                if (responded.data.status === 'error') {
-                    // revert funds to user wallet
-                    wallet.available_balance = wallet.available_balance + transaction.settlement_amount;
-                    wallet.locked_fund = wallet.locked_fund - transaction.settlement_amount;
-                    wallet.save();
-                    transaction.status = STATUS.failed;
-                    transaction.reversalEmail({ user, amount: transaction.settlement_amount });
-                    await transaction.save();
+                    if (responded.data.status === 'success') {
+                        // update wallet and send funds to company wallet
+                        const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
+                            user: user,
+                            amount_paid: transaction.settlement_amount,
+                            tran_ref: transaction.trans_ref,
+                            type: transaction.type
+                        });
+                        if (!taxtechWallet) {
+                            throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'could not complete money move');
+                        }
+                        transaction.status = STATUS.completed;
+                        await transaction.save();
+                    }
+
+                    if (responded.data.status === 'error') {
+                        // revert funds to user wallet
+                        wallet.available_balance = wallet.available_balance + transaction.settlement_amount;
+                        wallet.locked_fund = wallet.locked_fund - transaction.settlement_amount;
+                        wallet.save();
+                        transaction.status = STATUS.failed;
+                        transaction.reversalEmail({ user, amount: transaction.settlement_amount });
+                        await transaction.save();
+                    }
+                });
+            }
+
+            return res.status(httpStatus.OK).json({
+                message: 'Transactions verified',
+                status: httpStatus.OK
+            });
+        } catch (error) {
+            next(error);
+            throw new ApiError(httpStatus.BAD_REQUEST, error.message);
+        }
+    }
+
+    getTokenFromFlutterWave = async (req: any, res: any, next: any) => {
+        try {
+            // get all transaction by Success 
+            const transactions = await Transaction.find({
+                status: { $in: ['completed'] },
+                payment_method: 'wallet-mart',
+                type: {
+                    $in: ['power', 'bills-payment']
                 }
             });
+            if (!transactions) {
+                throw new ApiError(httpStatus.BAD_REQUEST, 'Transaction not found');
+            }
+            // for each transaction check the transaction by reference
+            transactions.forEach(async transaction => {
+                // check the response gotten and check the token for a valid value
+                let transactionPayload = JSON.parse(transaction.payload)
+                const responded = await this.flutterWaveService.verifyTransaction({
+                    reference: transactionPayload.reference
+                });
+                // send the token to the user
+                const transactionWallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
+                const user = await User.findOne({ user_id: transactionWallet.user_id });
+                if (!responded.data.token || responded.data.token != undefined || responded.data.token != '') {
+                    user.sendTokenToUser({ token: responded.data.token });
+                }
+                // update the transaction as completed with token sent
+                transaction.sent_token = true;
+                await transaction.save();
+            });
+            return res.status(httpStatus.OK).json({
+                code: httpStatus.OK,
+                message: 'Transaction token sent successfully'
+            });
+        } catch (error) {
+            next(error);
+            throw new ApiError(httpStatus.BAD_REQUEST, error.message);
         }
-
-        return res.status(httpStatus.OK).json({
-            message: 'Transactions verified',
-            status: httpStatus.OK
-        });
     }
 }
