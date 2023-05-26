@@ -21,8 +21,16 @@ export class AirtimeController {
   initiateAirtime = async (req: any, res: any, next: any) => {
     try {
       const { user } = req;
-      const { amount, customerID, billerName, billerCode, itemCode, save, name, type } =
-        req.body;
+      const {
+        amount,
+        customerID,
+        billerName,
+        billerCode,
+        itemCode,
+        save,
+        name,
+        type,
+      } = req.body;
       let beneficiaries = null;
       if (save) {
         beneficiaries = await this.airtimeService.saveBeneficiary({
@@ -30,7 +38,7 @@ export class AirtimeController {
           phoneNumber: customerID,
           network: itemCode,
           name: req.body.name || name,
-          type: type || "airtime"
+          type: type || 'airtime',
         });
       }
       // verify number and biller with flutter wave
@@ -39,7 +47,6 @@ export class AirtimeController {
         code: billerCode,
         item_code: itemCode,
       });
-      // console.log(verifyNumber);
       if (!verifyNumber) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid number Provided');
       }
@@ -65,14 +72,18 @@ export class AirtimeController {
         payment_method: 'wallet-mart',
         phone_number: verifyNumber.customer,
         status: 'pending',
-        type: type || "bills-payment"
+        type: type || 'bills-payment',
       });
 
       // send airtime OTP
       let OTPMessage = null;
       if (transaction) {
-        transaction.debitEmail({ user, amount });
-        if (user.account_type === 'individual' && user.pin_trans_auth !== true) {
+        transaction.debitEmail({ user, amount, wallet });
+        transaction.sendTWOFACode({ user });
+        if (
+          user.account_type === 'individual' &&
+          user.pin_trans_auth !== true
+        ) {
           transaction.sendTWOFACode({ user });
           OTPMessage = 'OTP sent to your email';
         }
@@ -92,14 +103,14 @@ export class AirtimeController {
       });
     } catch (error) {
       next(error);
-      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message);
     }
   };
 
   verifyTransaction = async (req: any, res: any, next: any) => {
     try {
       const { transactionReference, twoFA } = req.body;
-      const user = req;
+      const { user } = req;
 
       const transaction = await Transaction.findOne({
         trans_ref: transactionReference,
@@ -107,16 +118,24 @@ export class AirtimeController {
       // verify OTP
       const userPin = await UserIdentity.findOne({ user_id: user._id });
       if (!user.pin_trans_auth) {
+        if (!userPin.validPin(twoFA)) {
+          throw new ApiError(
+            httpStatus.UNPROCESSABLE_ENTITY,
+            'invalid Pin provided!',
+          );
+        }
+      } else {
         if (transaction && transaction.two_fa_code !== twoFA) {
           throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'invalid otp!');
         }
-      } else {
-        if (!userPin.validPin(twoFA)) {
-          throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'invalid Pin provided!');
-        }
       }
 
-      if (transaction.status === 'pending') {
+      if (transaction.status !== 'pending') {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          'Transaction already completed',
+        );
+      }
         // make call to fluter wave to verify transaction
         const data = {
           country: 'NG',
@@ -124,31 +143,38 @@ export class AirtimeController {
           customer: transaction.phone_number,
           amount: transaction.settlement_amount,
           type: transaction.payment_type,
-          reference: transaction.trans_ref
+          reference: transaction.trans_ref,
         };
 
         const payment = await this.flutterWaveService.makePayment(data);
 
         if (payment.status == 'error') {
           // reverse funds and send a reverse mail
-          const wallet = await Wallet.findOne({wallet_id: transaction.wallet_id});
+          const wallet = await Wallet.findOne({
+            wallet_id: transaction.wallet_id,
+          });
           wallet.available_balance = (
-            Number(wallet.available_balance) + wallet.currencyToKoboUnit(transaction.settlement_amount)
+            Number(wallet.available_balance) +
+            wallet.currencyToKoboUnit(transaction.settlement_amount)
           ).toString();
           wallet.locked_fund = (
             Number(wallet.locked_fund) -
             wallet.currencyToKoboUnit(transaction.settlement_amount)
           ).toString();
           await wallet.save();
-          transaction.reversalEmail({ user, amount: transaction.settlement_amount, wallet });
+          transaction.reversalEmail({
+            user,
+            amount: transaction.settlement_amount,
+            wallet,
+          });
           transaction.payload = JSON.stringify(payment.data);
           transaction.status = STATUS.failed;
           transaction.description = 'mart_payment_canceled';
           await transaction.save();
           // make reversal transaction
           const trx = new Transaction();
-          (trx.wallet_id = wallet.wallet_id);
-          (trx.amount_paid = transaction.settlement_amount);
+          trx.wallet_id = wallet.wallet_id;
+          trx.amount_paid = transaction.settlement_amount;
           trx.fee = '0';
           trx.settlement_amount = transaction.settlement_amount;
           trx.status = 'completed';
@@ -161,7 +187,10 @@ export class AirtimeController {
           trx.generatePaymentReference(10);
           trx.two_fa_code_verify = true;
           await trx.save();
-          throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'Error from third party reach out to the backend Team');
+          throw new ApiError(
+            httpStatus.UNPROCESSABLE_ENTITY,
+            'Error from third party reach out to the backend Team',
+          );
         }
 
         if (payment.status == 'pending') {
@@ -186,12 +215,13 @@ export class AirtimeController {
           await transaction.save();
 
           // this credit taxtech wallet account
-          const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
-            user: user,
-            amount_paid: transaction.settlement_amount,
-            tran_ref: transaction.trans_ref,
-            type: transaction.type
-          });
+          const taxtechWallet =
+            await this.airtimeService.sendFundToCompanyWallet({
+              user,
+              amount_paid: transaction.settlement_amount,
+              tran_ref: transaction.trans_ref,
+              type: transaction.type,
+            });
 
           if (taxtechWallet) {
             transaction.status = STATUS.completed;
@@ -200,23 +230,22 @@ export class AirtimeController {
             await transaction.save();
           }
         }
-
-      } else {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          'Transaction already completed',
-        );
-      }
+      
+      return res.status(httpStatus.OK).json({
+        code: httpStatus.OK,
+        message: 'Data payment successful',
+        trans_ref: transaction.trans_ref,
+        data: payment.data,
+      });
     } catch (error) {
       next(error);
-      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message);
     }
   };
 
   getCategory = async (req: any, res: any, next: any) => {
     try {
       const { category } = req.query;
-      console.log(category);
       const categories = await this.flutterWaveService.getBillsCategory(
         category,
       );
@@ -230,13 +259,13 @@ export class AirtimeController {
       });
     } catch (error) {
       next(error);
-      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message);
     }
   };
 
   /**
    * Get all bills Categories
-   * 
+   *
    * @route GET /api/v1/airtime/bills/categories
    * @param {any} req
    * @param {any} res
@@ -257,112 +286,28 @@ export class AirtimeController {
       });
     } catch (error) {
       next(error);
-      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message);
     }
-  }
-
-  // // amount more that 10k
-  // airtimeAboveLimit = async (req: any, res: any, next: any) => {
-  //   try {
-  //     const { user } = req;
-  //     const { amount, phoneNumber, save, itemCode, code, billerName } =
-  //       req.body;
-  //     let beneficiaries = null;
-  //     if (save) {
-  //       beneficiaries = await this.airtimeService.saveBeneficiary({
-  //         user_id: user._id,
-  //         phoneNumber,
-  //         network: itemCode,
-  //         name: req.body.name,
-  //       });
-  //     }
-  //     // verify number and biller with flutter wave
-  //     const verifyNumber = await this.flutterWaveService.verifyNumber({
-  //       customer: phoneNumber,
-  //       code,
-  //       item_code: itemCode,
-  //     });
-
-  //     if (!verifyNumber) {
-  //       throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid Phone number');
-  //     }
-  //     // check for amount less than 10k
-  //     if (amount < AIRTIME_LIMIT) {
-  //       const transaction = new Transaction();
-
-  //       // remove funds from wallet and lock funds
-  //       const wallet = await this.airtimeService.debitAndLockFund(user, amount);
-
-  //       // make payment to flutter wave
-  //       const ref = generateRandomString(10);
-  //       const data = {
-  //         country: 'NG',
-  //         customer: verifyNumber.customer,
-  //         amount,
-  //         recurrence: 'ONCE',
-  //         type: billerName,
-  //         reference: ref,
-  //         biller_name: billerName,
-  //       };
-
-  //       const payment = await this.flutterWaveService.makePayment(data);
-
-  //       // on fail reserve
-  //       if (payment.status == 'error') {
-  //         // reverse funds and send a reverse mail
-  //         wallet.available_balance = wallet.available_balance + amount;
-  //         wallet.locked_fund = wallet.locked_fund - amount;
-
-  //         throw new ApiError(httpStatus.BAD_REQUEST, 'Error from third party');
-  //       }
-  //       // on success add funds to company wallet
-  //       if (payment.status == 'success') {
-  //         const companyWallet = this.airtimeService.sendFundToCompanyWallet({
-  //           user_id: user._Id,
-  //           amount_paid: amount,
-  //           tran_ref: ref,
-  //         });
-  //         transaction.wallet_id = wallet.wallet_id;
-  //         transaction.settlement_amount = amount;
-  //         transaction.description = 'airtime';
-  //         transaction.currency = 'NGN';
-  //         transaction.payment_type = 'airtime';
-  //         transaction.payment_method = 'wallet';
-  //         transaction.status = 'completed';
-  //         transaction.phone_number = verifyNumber.customer;
-  //         transaction.two_fa_code_verify = true;
-  //         await transaction.save();
-  //       }
-  //       // send debit mail to user
-  //       await transaction.debitEmail({ user, amount });
-  //       // return res
-  //       res.status(httpStatus.OK).json({
-  //         statusCode: httpStatus.OK,
-  //         message: 'Airtime successful',
-  //         data: transaction,
-  //       });
-  //     } else {
-  //       throw new ApiError(
-  //         httpStatus.BAD_REQUEST,
-  //         'Please Use 2FA for this kind of amount',
-  //       );
-  //     }
-  //   } catch (error) {
-  //     next(error);
-  //     throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
-  //   }
-  // };
+  };
 
   // payment for for all bills
   billPayment = async (req: any, res: any, next: any) => {
     try {
       const { user } = req;
-      const { amount, customerID, billerName, billerCode, itemCode, save, name, type } =
-        req.body;
+      const {
+        amount,
+        customerID,
+        billerName,
+        billerCode,
+        itemCode,
+        save,
+        name,
+        type,
+      } = req.body;
 
-      if (amount < 100 && type === 'airtime') {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Amount must be 100 upward');
-      }
+      // if (amount < 100 && type === 'airtime') {
+      //   throw new ApiError(httpStatus.BAD_REQUEST, 'Amount must be 100 upward');
+      // }
 
       // validate number
       const verifyNumber = await this.flutterWaveService.verifyNumber({
@@ -390,7 +335,7 @@ export class AirtimeController {
           phoneNumber: customerID,
           network: itemCode,
           name: req.body.name || name,
-          type: type || "airtime"
+          type: type || 'airtime',
         });
       }
 
@@ -406,7 +351,7 @@ export class AirtimeController {
         payment_type: billerName,
         payment_method: 'wallet-mart',
         phone_number: verifyNumber.customer,
-        type: type || "bills-payment"
+        type: type || 'bills-payment',
       });
 
       // send debit mail to user
@@ -430,8 +375,7 @@ export class AirtimeController {
           Number(wallet.available_balance) + wallet.currencyToKoboUnit(amount)
         ).toString();
         wallet.locked_fund = (
-          Number(wallet.locked_fund) -
-          wallet.currencyToKoboUnit(amount)
+          Number(wallet.locked_fund) - wallet.currencyToKoboUnit(amount)
         ).toString();
         await wallet.save();
         transaction.reversalEmail({ user, amount, wallet });
@@ -441,8 +385,8 @@ export class AirtimeController {
         await transaction.save();
         // make reversal transaction
         const trx = new Transaction();
-        (trx.wallet_id = wallet.wallet_id);
-        (trx.amount_paid = amount);
+        trx.wallet_id = wallet.wallet_id;
+        trx.amount_paid = amount;
         trx.fee = '0';
         trx.settlement_amount = amount;
         trx.status = 'completed';
@@ -455,7 +399,10 @@ export class AirtimeController {
         trx.generatePaymentReference(10);
         trx.two_fa_code_verify = true;
         await trx.save();
-        throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'Error from third party reach out to the backend Team');
+        throw new ApiError(
+          httpStatus.UNPROCESSABLE_ENTITY,
+          'Error from third party reach out to the backend Team',
+        );
       }
 
       if (payment.status == 'pending') {
@@ -471,12 +418,14 @@ export class AirtimeController {
         await transaction.save();
 
         // this credit taxtech wallet account
-        const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet({
-          user: user,
-          amount_paid: amount,
-          tran_ref: transaction.trans_ref,
-          type
-        });
+        const taxtechWallet = await this.airtimeService.sendFundToCompanyWallet(
+          {
+            user: user,
+            amount_paid: amount,
+            tran_ref: transaction.trans_ref,
+            type,
+          },
+        );
 
         if (taxtechWallet) {
           transaction.status = STATUS.completed;
@@ -495,7 +444,7 @@ export class AirtimeController {
       });
     } catch (error) {
       next(error);
-      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message);
     }
   };
 
@@ -510,7 +459,7 @@ export class AirtimeController {
       });
     } catch (error) {
       next(error);
-      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message)
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message);
     }
-  }
+  };
 }

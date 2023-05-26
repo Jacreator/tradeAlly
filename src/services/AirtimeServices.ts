@@ -37,9 +37,9 @@ export class AirtimeServices {
       const wallet = await Wallet.findOne({ user_id: user._id });
 
       wallet.available_balance =
-        wallet.available_balance - userWallet.currencyToKoboUnit(amount.toString());
+        (wallet.available_balance - userWallet.currencyToKoboUnit(amount.toString())).toString();
       wallet.locked_fund =
-        wallet.locked_fund + userWallet.currencyToKoboUnit(amount.toString());
+        (wallet.locked_fund + userWallet.currencyToKoboUnit(amount.toString())).toString();
       await wallet.save();
 
       return wallet;
@@ -74,8 +74,8 @@ export class AirtimeServices {
   // send lock funds to taxaide wallet
   sendFundToCompanyWallet = async (payload: any) => {
     try {
+      const { user } = payload;
       const taxTechWallet = await Wallet.findOne({ wallet_id: TAXTECH_WALLET });
-
       const userWallet = await Wallet.findOne({
         user_id: payload.user._id,
       });
@@ -96,18 +96,7 @@ export class AirtimeServices {
         Number(taxTechWallet.available_balance) +
         Number(
           taxTechWallet.currencyToKoboUnit(
-            this.calculateProfit({
-              amount: payload.amount_paid,
-              type: payload.type,
-            }),
-          ),
-        )
-      ).toString();
-      taxTechWallet.ledger_balance = (
-        Number(taxTechWallet.ledger_balance) +
-        Number(
-          taxTechWallet.currencyToKoboUnit(
-            this.calculateProfit({
+            await this.calculateProfit({
               amount: payload.amount_paid,
               type: payload.type,
             }),
@@ -115,6 +104,19 @@ export class AirtimeServices {
         )
       ).toString();
 
+      taxTechWallet.ledger_balance = (
+        Number(taxTechWallet.ledger_balance) +
+        Number(
+          taxTechWallet.currencyToKoboUnit(
+            await this.calculateProfit({
+              amount: payload.amount_paid,
+              type: payload.type,
+            }),
+          ),
+        )
+      ).toString();
+
+      
       // generate transaction record for company
       const companyTransaction = new Transaction();
       companyTransaction.wallet_id = TAXTECH_WALLET;
@@ -143,9 +145,9 @@ export class AirtimeServices {
     }
   };
 
-  calculateProfit = (payload: { amount: string; type: string }) => {
+  calculateProfit = async (payload: { amount: string; type: string }) => {
     if (payload.type === 'airtime') {
-      return (payload.amount = ((3 * 100) / Number(payload.amount)).toFixed(2));
+      return (payload.amount = ((3 * 100) / Number(payload.amount)).toFixed(2)).toString();
     }
     return '30';
   };
