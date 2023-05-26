@@ -32,7 +32,6 @@ export const TireCheck = async (req: any, res: any, next: any) => {
                 if (amount >= TIRE_LEVELS.platinum || amount <= TIRE_LEVELS.platinum) {
                     next();
                 }
-
                 break;
             default:
                 throw new ApiError(httpStatus.UNAUTHORIZED, "tier failing");

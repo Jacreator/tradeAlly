@@ -126,6 +126,7 @@ export class TransactionController {
                 throw new ApiError(httpStatus.BAD_REQUEST, 'Transaction not found');
             }
             // for each transaction check the transaction by reference
+            let token;
             transactions.forEach(async transaction => {
                 // check the response gotten and check the token for a valid value
                 let transactionPayload = JSON.parse(transaction.payload)
@@ -137,6 +138,7 @@ export class TransactionController {
                 const transactionWallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
                 const user = await User.findOne({ user_id: transactionWallet.user_id });
                 if (!responded.data.token || responded.data.token != undefined || responded.data.token != '') {
+                    token = responded.data.token
                     user.sendTokenToUser({ token: responded.data.token });
                 }
                 // update the transaction as completed with token sent
@@ -145,7 +147,8 @@ export class TransactionController {
             });
             return res.status(httpStatus.OK).json({
                 code: httpStatus.OK,
-                message: 'Transaction token sent successfully'
+                message: 'Transaction token sent successfully',
+                data: token
             });
         } catch (error) {
             next(error);
