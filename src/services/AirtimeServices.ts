@@ -37,12 +37,10 @@ export class AirtimeServices {
       const wallet = await Wallet.findOne({ user_id: user._id });
 
       wallet.available_balance =
-        (wallet.available_balance - userWallet.currencyToKoboUnit(amount.toString())).toString();
+        (Number(wallet.available_balance) - userWallet.currencyToKoboUnit(amount.toString())).toString();
       wallet.locked_fund =
-        (wallet.locked_fund + userWallet.currencyToKoboUnit(amount.toString())).toString();
-      await wallet.save();
-
-      return wallet;
+        (Number(wallet.locked_fund) + userWallet.currencyToKoboUnit(amount.toString())).toString();
+      return await wallet.save();
     } catch (error) {
       throw new ApiError(httpStatus.BAD_REQUEST, error.message);
     }
@@ -92,7 +90,7 @@ export class AirtimeServices {
       ).toString();
 
       // add fund to company wallet
-      taxTechWallet.available_balance = (
+      taxTechWallet.available_balance =  (
         Number(taxTechWallet.available_balance) +
         Number(
           taxTechWallet.currencyToKoboUnit(

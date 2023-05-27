@@ -8,9 +8,9 @@ export interface IWallet {
   user_id: string
   wallet_id: string
   currency: string
-  available_balance: any
+  available_balance: string
   ledger_balance: string
-  locked_fund: any
+  locked_fund: string
   two_fa_code: string
   is_locked: boolean
 }
@@ -19,9 +19,9 @@ export interface IWalletToAuthJSON {
   user_id: string
   wallet_id: string
   currency: string
-  available_balance: any
+  available_balance: string
   ledger_balance: string
-  locked_fund: any
+  locked_fund: string
   two_fa_code: string
   is_locked: boolean
 }
@@ -46,9 +46,9 @@ const schema = new Schema<IWalletModel>(
     user_id: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
     wallet_id: { type: String, required: true },
     currency: { type: String, required: true },
-    available_balance: { type: Number, required: true },
-    ledger_balance: { type: Number, required: true },
-    locked_fund: {type: Number, required: true },
+    available_balance: { type: String, required: true },
+    ledger_balance: { type: String, required: true },
+    locked_fund: {type: String, required: true },
     two_fa_code: { type: String, default: null },
     is_locked: { type: Boolean, default: false },
   },

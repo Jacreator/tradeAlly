@@ -89,15 +89,43 @@ export class TransactionController {
                         await transaction.save();
                     }
 
-                    if (responded.data.status === 'error') {
+                    
                         // revert funds to user wallet
-                        wallet.available_balance = wallet.available_balance + transaction.settlement_amount;
-                        wallet.locked_fund = wallet.locked_fund - transaction.settlement_amount;
-                        wallet.save();
-                        transaction.status = STATUS.failed;
-                        transaction.reversalEmail({ user, amount: transaction.settlement_amount });
-                        await transaction.save();
-                    }
+                        if (responded.data.status == 'error') {
+                            // reverse funds and send a reverse mail
+                            wallet.available_balance = (
+                                Number(wallet.available_balance) + wallet.currencyToKoboUnit(transaction.settlement_amount)
+                            ).toString();
+                            wallet.locked_fund = (Number(wallet.locked_fund) - wallet.currencyToKoboUnit(transaction.settlement_amount)).toString();
+                            await wallet.save();
+
+                            transaction.reversalEmail({ user, amount: transaction.settlement_amount, wallet });
+                            transaction.payload = JSON.stringify(responded.data);
+                            transaction.status = STATUS.failed;
+                            transaction.description = 'mart_payment_canceled';
+                            await transaction.save();
+                            // make reversal transaction
+                            const trx = new Transaction();
+                            trx.wallet_id = wallet.wallet_id;
+                            trx.amount_paid = transaction.settlement_amount;
+                            trx.fee = '0';
+                            trx.settlement_amount = transaction.settlement_amount;
+                            trx.status = 'completed';
+                            trx.description = `mart_payment_reversal`;
+                            trx.reciever = wallet.wallet_id;
+                            trx.currency = 'NGN';
+                            trx.payment_method = 'wallet-wallet';
+                            trx.payment_type = 'credit';
+                            trx.generateTransactionReference(10);
+                            trx.generatePaymentReference(10);
+                            trx.two_fa_code_verify = true;
+                            await trx.save();
+                            throw new ApiError(
+                                httpStatus.UNPROCESSABLE_ENTITY,
+                                'Error from third party reach out to the backend Team',
+                            );
+                        }
+                    
                 });
             }
 
