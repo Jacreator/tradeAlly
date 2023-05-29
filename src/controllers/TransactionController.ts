@@ -183,4 +183,20 @@ export class TransactionController {
             throw new ApiError(httpStatus.BAD_REQUEST, error.message);
         }
     }
+
+    getSingleTransactionToken = async (req: any, res: any, next: any) => {
+        try {
+            const { ref } = req.params;
+            return res.status(httpStatus.OK).json({
+                code: httpStatus.OK,
+                message: 'hit the transaction',
+                data: await this.flutterWaveService.verifyTransaction({
+                    reference: ref
+                })
+            });
+        } catch (error) {
+            next(error);
+            throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message);
+        }
+    }
 }

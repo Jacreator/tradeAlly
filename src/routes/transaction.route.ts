@@ -6,7 +6,8 @@ const router = express.Router();
 
 const { 
     verifyFullerWaveTransaction,
-    getTokenFromFlutterWave
+    getTokenFromFlutterWave,
+    getSingleTransactionToken
 } = new TransactionController();
 
 
@@ -16,4 +17,5 @@ router.get('/verify', verifyFullerWaveTransaction);
 
 router.get('/send-token', getTokenFromFlutterWave);
 
+router.get('/get-token/:ref', getSingleTransactionToken);
 export default router;
