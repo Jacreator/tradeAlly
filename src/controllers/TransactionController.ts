@@ -89,43 +89,43 @@ export class TransactionController {
                         await transaction.save();
                     }
 
-                    
-                        // revert funds to user wallet
-                        if (responded.data.status == 'error') {
-                            // reverse funds and send a reverse mail
-                            wallet.available_balance = (
-                                Number(wallet.available_balance) + wallet.currencyToKoboUnit(transaction.settlement_amount)
-                            ).toString();
-                            wallet.locked_fund = (Number(wallet.locked_fund) - wallet.currencyToKoboUnit(transaction.settlement_amount)).toString();
-                            await wallet.save();
 
-                            transaction.reversalEmail({ user, amount: transaction.settlement_amount, wallet });
-                            transaction.payload = JSON.stringify(responded.data);
-                            transaction.status = STATUS.failed;
-                            transaction.description = 'mart_payment_canceled';
-                            await transaction.save();
-                            // make reversal transaction
-                            const trx = new Transaction();
-                            trx.wallet_id = wallet.wallet_id;
-                            trx.amount_paid = transaction.settlement_amount;
-                            trx.fee = '0';
-                            trx.settlement_amount = transaction.settlement_amount;
-                            trx.status = 'completed';
-                            trx.description = `mart_payment_reversal`;
-                            trx.reciever = wallet.wallet_id;
-                            trx.currency = 'NGN';
-                            trx.payment_method = 'wallet-wallet';
-                            trx.payment_type = 'credit';
-                            trx.generateTransactionReference(10);
-                            trx.generatePaymentReference(10);
-                            trx.two_fa_code_verify = true;
-                            await trx.save();
-                            throw new ApiError(
-                                httpStatus.UNPROCESSABLE_ENTITY,
-                                'Error from third party reach out to the backend Team',
-                            );
-                        }
-                    
+                    // revert funds to user wallet
+                    if (responded.data.status == 'error') {
+                        // reverse funds and send a reverse mail
+                        wallet.available_balance = (
+                            Number(wallet.available_balance) + wallet.currencyToKoboUnit(transaction.settlement_amount)
+                        ).toString();
+                        wallet.locked_fund = (Number(wallet.locked_fund) - wallet.currencyToKoboUnit(transaction.settlement_amount)).toString();
+                        await wallet.save();
+
+                        transaction.reversalEmail({ user, amount: transaction.settlement_amount, wallet });
+                        transaction.payload = JSON.stringify(responded.data);
+                        transaction.status = STATUS.failed;
+                        transaction.description = 'mart_payment_canceled';
+                        await transaction.save();
+                        // make reversal transaction
+                        const trx = new Transaction();
+                        trx.wallet_id = wallet.wallet_id;
+                        trx.amount_paid = transaction.settlement_amount;
+                        trx.fee = '0';
+                        trx.settlement_amount = transaction.settlement_amount;
+                        trx.status = 'completed';
+                        trx.description = `mart_payment_reversal`;
+                        trx.reciever = wallet.wallet_id;
+                        trx.currency = 'NGN';
+                        trx.payment_method = 'wallet-wallet';
+                        trx.payment_type = 'credit';
+                        trx.generateTransactionReference(10);
+                        trx.generatePaymentReference(10);
+                        trx.two_fa_code_verify = true;
+                        await trx.save();
+                        throw new ApiError(
+                            httpStatus.UNPROCESSABLE_ENTITY,
+                            'Error from third party reach out to the backend Team',
+                        );
+                    }
+
                 });
             }
 
@@ -154,10 +154,12 @@ export class TransactionController {
                 throw new ApiError(httpStatus.BAD_REQUEST, 'Transaction not found');
             }
             // for each transaction check the transaction by reference
-            let token;
+            let token: any[] = [];
+            let payload: any[] = [];
             transactions.forEach(async transaction => {
                 // check the response gotten and check the token for a valid value
                 let transactionPayload = JSON.parse(transaction.payload)
+                payload.push(transactionPayload);
                 const responded = await this.flutterWaveService.verifyTransaction({
                     reference: transactionPayload.reference
                 });
@@ -165,8 +167,11 @@ export class TransactionController {
 
                 const transactionWallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
                 const user = await User.findOne({ user_id: transactionWallet.user_id });
-                if (!responded.data.token || responded.data.token != undefined || responded.data.token != '') {
-                    token = responded.data.token
+                if (!responded.data.extra || responded.data.extra != undefined || responded.data.extra != '') {
+                    token.push({
+                        id: user.first_name + ' ' + user.last_name,
+                        token: responded.data.extra
+                    });
                     user.sendTokenToUser({ token: responded.data.token });
                 }
                 // update the transaction as completed with token sent
@@ -176,7 +181,7 @@ export class TransactionController {
             return res.status(httpStatus.OK).json({
                 code: httpStatus.OK,
                 message: 'Transaction token sent successfully',
-                data: token
+                data: { token, length: transactions.length, payload }
             });
         } catch (error) {
             next(error);
