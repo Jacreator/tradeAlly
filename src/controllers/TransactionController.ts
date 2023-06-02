@@ -167,13 +167,21 @@ export class TransactionController {
 
                 const transactionWallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
                 const user = await User.findOne({ user_id: transactionWallet.user_id });
-                if (!responded.data.extra || responded.data.extra != undefined || responded.data.extra != '') {
-                    token.push(responded.data.extra);
-                    user.sendTokenToUser({ token: responded.data.extra });
+                if (!responded.data.data.extra || responded.data.data.extra != undefined || responded.data.data.extra != '') {
+                    console.log({
+                        token: responded.data.data.extra,
+                        name: `${user.first_name} - ${user.last_name}`
+                    });
+                    token.push(responded.data.data.extra);
+                    user.sendTokenToUser({ token: responded.data.data.extra });
+                    transaction.sent_token = true;
+                    await transaction.save();
+                } else {
+                    transaction.sent_token = true;
+                    await transaction.save();
                 }
                 // update the transaction as completed with token sent
-                transaction.sent_token = true;
-                await transaction.save();
+
             });
             return res.status(httpStatus.OK).json({
                 code: httpStatus.OK,
