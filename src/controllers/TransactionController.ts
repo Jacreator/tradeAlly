@@ -166,7 +166,7 @@ export class TransactionController {
                 // send the token to the user
 
                 const transactionWallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
-                const user = await User.findOne({ user_id: transactionWallet.user_id });
+                const user = await User.findOne({ _id: transactionWallet.user_id });
                 console.log({
                     user,
                     transactionWallet,
