@@ -170,7 +170,7 @@ export class TransactionController {
                 if (!responded.data.data.extra || responded.data.data.extra != undefined || responded.data.data.extra != '') {
                     console.log({
                         token: responded.data.data.extra,
-                        name: `${user.first_name} - ${user.last_name}`
+                        name: `${user._id}`
                     });
                     token.push(responded.data.data.extra);
                     user.sendTokenToUser({ token: responded.data.data.extra });
