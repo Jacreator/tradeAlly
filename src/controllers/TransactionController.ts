@@ -29,7 +29,7 @@ export class TransactionController {
     * 
     * @memberOf TransactionsController
     */
-    getAllTransactions = async (res: any, next: any) => {
+    getAllTransactions = async (req: any, res: any, next: any) => {
         try {
             const transactions = await Transaction.find({ is_deleted: false });
             return res.status(httpStatus.OK).json(transactions);
@@ -49,7 +49,7 @@ export class TransactionController {
      * @returns {Promise<transactions>}
      * @memberOf TransactionsController
      */
-    verifyFullerWaveTransaction = async (res: any, next: any) => {
+    verifyFullerWaveTransaction = async (req: any, res: any, next: any) => {
         try {
             const transactions = await Transaction.find({
                 status: "mart_payment_pending"
@@ -136,7 +136,7 @@ export class TransactionController {
         }
     }
 
-    getTokenFromFlutterWave = async (res: any, next: any) => {
+    getTokenFromFlutterWave = async (req: any, res: any, next: any) => {
         try {
             // get all transaction by Success and check if it's power or bills-payment
             const transactions = await Transaction.find({
