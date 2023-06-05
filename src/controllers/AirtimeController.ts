@@ -153,7 +153,7 @@ export class AirtimeController {
         const wallet = await Wallet.findOne({
           wallet_id: transaction.wallet_id,
         });
-        
+
         wallet.available_balance = String(
           Number(wallet.available_balance) +
           wallet.currencyToKoboUnit(transaction.settlement_amount)
@@ -317,6 +317,9 @@ export class AirtimeController {
         code: billerCode,
         item_code: itemCode,
       });
+      console.log({
+        verified_info: verifyNumber
+      });
 
       if (!verifyNumber) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid number Provided');
@@ -369,7 +372,13 @@ export class AirtimeController {
         recurrence: 'ONCE',
       };
       // make flutterwave payment
-      const payment = await this.flutterWaveService.makePayment(data);
+      // const payment = await this.flutterWaveService.makePayment(data);
+      const payment = {
+        status: 'success',
+        data: {
+          reference: transaction.trans_ref
+        }
+      };
 
       if (payment.status == 'error') {
         // reverse funds and send a reverse mail
@@ -438,6 +447,26 @@ export class AirtimeController {
       }
 
       const savedBeneficiaries = beneficiaries ? 'beneficiary Saved' : null;
+      if (type === 'electric') {
+        // check status and send token email notification
+        const responded = await this.flutterWaveService.verifyTransaction({
+          reference: payment.data.reference
+        });
+        if (!responded.data.data.extra || responded.data.data.extra != undefined || responded.data.data.extra != '') {
+          // send the token to the user
+          user.sendTokenToUser({ token: responded.data.data.extra });
+          // update transaction sent token to user so it doesn't send twice
+          transaction.sent_token = true;
+          // save transaction
+          await transaction.save();
+        } else {
+          // set transaction sent token to false cause it did not send token
+          transaction.sent_token = false;
+          // save transaction
+          await transaction.save();
+        }
+      }
+      
       res.status(httpStatus.OK).json({
         message: 'Data payment successful',
         aboutBeneficiary: savedBeneficiaries,
@@ -464,4 +493,25 @@ export class AirtimeController {
       throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message);
     }
   };
+
+  verifyNumber = async (req: any, res: any, next: any) => {
+    try {
+      const { customerID,
+        billerCode,
+        itemCode
+      } = req.body;
+      res.status(httpStatus.OK).json({
+        code: httpStatus.OK,
+        message: 'information verified successfully',
+        data: await this.flutterWaveService.verifyNumber({
+          customer: customerID,
+          code: billerCode,
+          item_code: itemCode,
+        })
+      });
+    } catch (error) {
+      next(error);
+      throw new ApiError(httpStatus.BAD_REQUEST, error.message);
+    }
+  }
 }

@@ -12,7 +12,7 @@ const {
   initiateAirtime,
   verifyTransaction,
   getCategory,
-  // airtimeLessThan10k,
+  verifyNumber,
   billPayment,
   getBillsCategories,
   getWalletBalance
@@ -36,5 +36,6 @@ router.post('/bill-payment', TireCheck, billPayment);
 
 router.get('/flutterwave-balance', getWalletBalance);
 
+router.post('/verify-number', verifyNumber);
 
 export default router;
