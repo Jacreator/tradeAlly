@@ -5,10 +5,7 @@ import { AirtimeServices } from '@/services/AirtimeServices';
 import { Wallet } from "@/models/wallet.model";
 import { User } from "@/models/user.model";
 import ApiError from "@/helper/ApiError";
-import { NODE_APP_INSTANCE } from "@/config";
 import { STATUS } from "@/config/constants";
-
-const CronJob = require('cron').CronJob;
 
 export class TransactionController {
 
@@ -32,7 +29,7 @@ export class TransactionController {
     * 
     * @memberOf TransactionsController
     */
-    getAllTransactions = async (req: any, res: any, next: any) => {
+    getAllTransactions = async (res: any, next: any) => {
         try {
             const transactions = await Transaction.find({ is_deleted: false });
             return res.status(httpStatus.OK).json(transactions);
@@ -52,7 +49,7 @@ export class TransactionController {
      * @returns {Promise<transactions>}
      * @memberOf TransactionsController
      */
-    verifyFullerWaveTransaction = async (req: any, res: any, next: any) => {
+    verifyFullerWaveTransaction = async (res: any, next: any) => {
         try {
             const transactions = await Transaction.find({
                 status: "mart_payment_pending"
@@ -139,9 +136,9 @@ export class TransactionController {
         }
     }
 
-    getTokenFromFlutterWave = async (req: any, res: any, next: any) => {
+    getTokenFromFlutterWave = async (res: any, next: any) => {
         try {
-            // get all transaction by Success 
+            // get all transaction by Success and check if it's power or bills-payment
             const transactions = await Transaction.find({
                 status: { $in: ['completed'] },
                 payment_method: 'wallet-mart',
@@ -150,6 +147,8 @@ export class TransactionController {
                     $in: ['power', 'bills-payment']
                 },
             });
+
+            // if no transactions throw not fround message
             if (!transactions) {
                 throw new ApiError(httpStatus.BAD_REQUEST, 'Transaction not found');
             }
@@ -163,23 +162,31 @@ export class TransactionController {
                 const responded = await this.flutterWaveService.verifyTransaction({
                     reference: transactionPayload.reference
                 });
-                // send the token to the user
-
+                // find the wallet user to get the user id 
                 const transactionWallet = await Wallet.findOne({ wallet_id: transaction.wallet_id });
+                // find user by user id and get user information
                 const user = await User.findOne({ _id: transactionWallet.user_id });
+                console.log({
+                    found: 'user'
+                });
+                // check for the token and make sure it is available
                 if (!responded.data.data.extra || responded.data.data.extra != undefined || responded.data.data.extra != '') {
-                    
                     token.push(responded.data.data.extra);
+                    // send the token to the user
+                    console.log({ user});
                     user.sendTokenToUser({ token: responded.data.data.extra });
+                    // update transaction sent token to user so it doesn't send twice
                     transaction.sent_token = true;
+                    // save transaction
                     await transaction.save();
                 } else {
-                    transaction.sent_token = true;
+                    // set transaction sent token to false cause it did not send token
+                    transaction.sent_token = false;
+                    // save transaction
                     await transaction.save();
                 }
-                // update the transaction as completed with token sent
-
             });
+            // return response
             return res.status(httpStatus.OK).json({
                 code: httpStatus.OK,
                 message: 'Transaction token sent successfully',

@@ -431,6 +431,7 @@ export class AirtimeController {
         if (taxtechWallet) {
           transaction.status = STATUS.completed;
           transaction.trans_ref = payment.data.reference;
+          transaction.description = 'mart_payment_completed'
           transaction.payload = JSON.stringify(payment.data);
           await transaction.save();
         }
