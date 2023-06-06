@@ -372,13 +372,13 @@ export class AirtimeController {
         recurrence: 'ONCE',
       };
       // make flutterwave payment
-      // const payment = await this.flutterWaveService.makePayment(data);
-      const payment = {
-        status: 'success',
-        data: {
-          reference: transaction.trans_ref
-        }
-      };
+      const payment = await this.flutterWaveService.makePayment(data);
+      // const payment = {
+      //   status: 'success',
+      //   data: {
+      //     reference: transaction.trans_ref
+      //   }
+      // };
 
       if (payment.status == 'error') {
         // reverse funds and send a reverse mail
@@ -447,7 +447,7 @@ export class AirtimeController {
       }
 
       const savedBeneficiaries = beneficiaries ? 'beneficiary Saved' : null;
-      if (type === 'electric') {
+      if (type === 'power') {
         // check status and send token email notification
         const responded = await this.flutterWaveService.verifyTransaction({
           reference: payment.data.reference
