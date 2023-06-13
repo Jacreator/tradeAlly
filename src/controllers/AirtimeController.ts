@@ -3,11 +3,9 @@ import { AirtimeServices } from '@/services/AirtimeServices';
 import httpStatus from 'http-status';
 import { Transaction } from '@/models/transaction.model';
 import { FlutterWaveService } from './../helper/third-party/flutter-wave';
-import { AIRTIME_LIMIT } from '@/config';
-import { generateRandomString } from './../helper/index';
 import { Wallet } from '@/models/wallet.model';
 import { UserIdentity } from '@/models/user_identity.model';
-import { STATUS } from '@/config/constants';
+import { STATUS, TRANSACTION_STATUS } from '@/config/constants';
 
 export class AirtimeController {
   private airtimeService: AirtimeServices;
@@ -117,16 +115,16 @@ export class AirtimeController {
       });
       // verify OTP
       const userPin = await UserIdentity.findOne({ user_id: user._id });
-      if (!user.pin_trans_auth) {
+      if (!user.pin_trans_auth || user.account_type !== 'individual') {
+        if (transaction && transaction.two_fa_code !== twoFA) {
+          throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'invalid otp!');
+        }
+      } else {
         if (!userPin.validPin(twoFA)) {
           throw new ApiError(
             httpStatus.UNPROCESSABLE_ENTITY,
             'invalid Pin provided!',
           );
-        }
-      } else {
-        if (transaction && transaction.two_fa_code !== twoFA) {
-          throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'invalid otp!');
         }
       }
 
@@ -196,7 +194,7 @@ export class AirtimeController {
 
       if (payment.status == 'pending') {
         // update transaction status to retry
-        transaction.status = 'mart_payment_pending';
+        transaction.status = TRANSACTION_STATUS.pending;
         transaction.trans_ref = payment.data.reference;
         transaction.payload = JSON.stringify(payment.data);
         await transaction.save();

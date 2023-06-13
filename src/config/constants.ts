@@ -11,3 +11,9 @@ export const STATUS: any = {
     'failed': 'failed',
     'partyFinished': 'party_finished',
 }
+
+export const TRANSACTION_STATUS: any = {
+    'pending': 'mart_payment_pending',
+    'failed': 'mart_payment_failed',
+    'completed': 'mart_payment_completed',
+}
