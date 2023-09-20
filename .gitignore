@@ -9,6 +9,8 @@ dist/
 build/
 .yarn/
 .pnp.*
+.vscode
+
 
 # Compiled Java class files
 *.class

@@ -35,8 +35,6 @@ export const authenticated = async (
       if (!user) {
         throw new ApiError(httpStatus.UNAUTHORIZED, 'unknown user data detected!');
       }
-
-      req.body.padi = user;
       req.user = user;
       next();
     } else {
