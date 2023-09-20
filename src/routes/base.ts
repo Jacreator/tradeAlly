@@ -8,15 +8,17 @@ import { UserVerification } from "@/middleware/userVerified.middleware";
 const router = express.Router();
 
 const {
-  freeFunction
+  getAll,
+  store
 } = new BaseController;
 
-router.use(
-  authenticated,
-  UserVerification,
-  );
+// router.use(
+//   authenticated,
+//   UserVerification,
+//   );
 
 
-router.get('/', freeFunction);
+router.get('/', getAll);
+router.post('/', store);
 
 export default router;
