@@ -1,35 +1,60 @@
 import ApiError from '@/helper/ApiError';
-import { AirtimeServices } from '@/services/BaseService';
+import { BaseService } from '@/services/BaseService';
 import httpStatus from 'http-status';
 
 export class BaseController {
-  
-
+  public baseService: any;
   constructor() {
-    
+    this.baseService = new BaseService();
   }
 
-  
-
   /**
-   * Get all bills Categories
+   * Store a collection of user
    *
-   * @route GET /api/v1/
+   * @route POST /api/v1/base
    * @param {any} req
    * @param {any} res
    * @param { any } next
-   * @group Airtime
-   * @returns {object} 200 - An array of bills categories
-   * @memberOf AirtimeController
+   * @group Base
+   * @returns {object} 200 - An array of User
+   * @memberOf BaseController
    */
-  freeFunction = async (req: any, res: any, next: any) => {
+  store = async (req: any, res: any, next: any) => {
     try {
-      res.status(httpStatus.OK).json({
+      const {
+        firstName,
+        middleName,
+        lastName,
+        emailAddress,
+        phoneNumber,
+        occupation,
+      } = req.body;
+
+      return res.status(httpStatus.OK).json({
         code: httpStatus.OK,
-        message: '',
-        data: {
-        },
+        message: 'stored successfully',
+        data: await this.baseService.create({
+          firstName,
+          middleName,
+          lastName,
+          emailAddress,
+          phoneNumber,
+          occupation
+        }),
       });
+    } catch (error) {
+      next(error);
+      throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message);
+    }
+  };
+
+  getAll = async (req: any, res: any, next: any) => {
+    try {
+      return res.status(httpStatus.OK).json({
+        code: httpStatus.OK,
+        message: "users data fetched",
+        data: await this.baseService.all()
+      })
     } catch (error) {
       next(error);
       throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, error.message);

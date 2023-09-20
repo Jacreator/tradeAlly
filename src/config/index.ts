@@ -3,7 +3,7 @@ export const IS_PRODUCTION = ENVIRONMENT === 'production'
 export const IS_TEST = ENVIRONMENT === 'test'
 export const APP_PORT = Number(process.env.APP_PORT) || 9000
 export const APP_PREFIX_PATH = process.env.APP_PREFIX_PATH || '/v1/api'
-export const JWT_SECRET = process.env.JWT_SECRET || 'thT9x1TP9y2022Serv1ceis'
+export const JWT_SECRET = process.env.JWT_SECRET 
 export const JWT_EXPIRE = process.env.JWT_EXPIRE || '1d'
 export const DB = {
   USER: process.env.DB_USER,
@@ -12,7 +12,7 @@ export const DB = {
   NAME: process.env.DB_NAME,
   PORT: Number(process.env.DB_PORT) || 27017,
 }
-export const DB_URI = process.env.DB_URI || 'mongodb://localhost:27017/taxitpay'
-export const APP_NAME = 'Service'
+export const DB_URI = process.env.DB_URI
+export const APP_NAME = process.env.APP_NAME
 export const APP_URL = process.env.APP_URL
 
