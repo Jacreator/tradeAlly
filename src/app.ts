@@ -1,7 +1,6 @@
 import compression from "compression";
 import cors from "cors";
 import express from "express";
-import fileUpload from "express-fileupload";
 import helmet from "helmet";
 import httpStatus from "http-status";
 import mongoSanitize from 'express-mongo-sanitize';
@@ -38,18 +37,11 @@ app.use(compression());
 
 app.use(cors());
 
-app.use(fileUpload({
-  limits: { fileSize: 3 * 1024 * 1024 },
-  // abortOnLimit: true,
-  // responseOnLimit: 'File cannot exceed 3MB'
-  // 3052189
-}));
-
 app.get('/', (_req, res) => {
   res.status(httpStatus.OK).send({
     service: `${APP_NAME}`,
-    message: `Welcome to the ${APP_NAME}. Payment magic happens here!`,
-    confi: APP_PREFIX_PATH
+    message: `Welcome to the ${APP_NAME}. happens here!`,
+    config: APP_PREFIX_PATH
   });
 });
 
