@@ -1,5 +1,4 @@
 import ApiError from '@/helper/ApiError';
-import { User } from '@/models/user.model';
 import { BaseService } from '@/services/BaseService';
 import httpStatus from 'http-status';
 
