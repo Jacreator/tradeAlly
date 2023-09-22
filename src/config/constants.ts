@@ -3,3 +3,9 @@ export const CONSTANTS: any = {
     'gold': 500000,
     'platinum': 500000
 }
+
+export const ACCOUNT_TYPE: any = {
+    'production': 'production',
+    'sandBox': 'developer',
+    'whitelist': 'test'
+}
