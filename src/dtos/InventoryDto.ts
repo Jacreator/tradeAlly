@@ -19,4 +19,12 @@ export class InventoryDto {
 
     @Expose()
     discountAvailable: String;
+
+    @IsDefined()
+    @Expose()
+    companyID: String
+
+    // @IsDefined()
+    @Expose()
+    addedDate: String
 }

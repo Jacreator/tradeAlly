@@ -4,6 +4,7 @@ import express from 'express';
 import base from './base';
 import account from './account';
 import inventory from './inventory';
+import sale from './sales';
 
 var router = express.Router();
 
@@ -19,5 +20,6 @@ router.get('/welcome', function(req: any, res: any, next: any) {
 router.use('/base', base);
 router.use('/account', account);
 router.use('/inventory', inventory);
+router.use('/sales', sale);
 
 export default router;

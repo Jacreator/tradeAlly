@@ -9,6 +9,8 @@ export interface IInventory {
     quantity: string
     quantity_sold: string
     discount: string
+    company_id: string
+    date: string
 }
 
 export interface IInventoryJSON {
@@ -18,6 +20,8 @@ export interface IInventoryJSON {
     quantity: string
     quantity_sold: string
     discount: string
+    company_id: string
+    date: string
 }
 
 export default interface IInventoryModel extends Document, IInventory {
@@ -26,12 +30,14 @@ export default interface IInventoryModel extends Document, IInventory {
 
 const schema = new Schema<IInventoryModel>(
     {
+        company_id: { type: String, require: true },
         name: { type: String, default: null },
         code: { type: String, default: null },
         price: { type: String, default: null },
         quantity: { type: String, default: '0' },
         quantity_sold: { type: String, default: '0' },
         discount: { type: String, default: '0' },
+        date: {type: String, default: null}
     },
     { timestamps: true },
 )
@@ -46,7 +52,7 @@ schema.methods.toInventoryJSON = async function () {
         price,
         quantity,
         quantity_sold,
-        discount } = this
+        discount, company_id, date } = this
 
     return {
         id: _id,
@@ -55,7 +61,9 @@ schema.methods.toInventoryJSON = async function () {
         price,
         quantity,
         quantity_sold,
-        discount
+        discount,
+        company_id,
+        date
     }
 }
 
